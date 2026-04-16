@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PASECO — 수입 불량 현황</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:       #F5F7FA;
+  --bg-card:  #FFFFFF;
+  --bg-hover: #F0F4F8;
+  --bg-input: #F5F7FA;
+  --border:   #E2E8F0;
+  --border2:  #CBD5E1;
+  --txt:      #1E293B;
+  --txt-sub:  #64748B;
+  --txt-dim:  #94A3B8;
+  --blue:     #2563EB;
+  --blue-l:   #EFF6FF;
+  --blue-m:   #BFDBFE;
+  --red:      #DC2626;
+  --red-l:    #FEF2F2;
+  --amber:    #D97706;
+  --amber-l:  #FFFBEB;
+  --green:    #059669;
+  --green-l:  #ECFDF5;
+  --purple:   #7C3AED;
+  --purple-l: #F5F3FF;
+  --teal:     #0891B2;
+  --teal-l:   #ECFEFF;
+  --r:        10px;
+  --sb:       230px;
+  --font:     'Noto Sans KR', sans-serif;
+  --mono:     'IBM Plex Mono', monospace;
+  --shadow:   0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow2:  0 4px 12px rgba(0,0,0,.08);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--bg); color: var(--txt); font-family: var(--font); font-size: 13px; line-height: 1.5; }
+
+/* ── Layout ── */
+.shell { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+
+/* ── Sidebar ── */
+.sb { width: var(--sb); background: var(--txt); display: flex; flex-direction: column; flex-shrink: 0; }
+.sb-head { padding: 18px 18px 16px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.brand { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.brand-ico { width: 36px; height: 36px; background: var(--blue); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #fff; flex-shrink: 0; }
+.brand-name { font-weight: 700; font-size: 14px; color: #fff; }
+.brand-ver { font-size: 10px; color: rgba(255,255,255,.4); font-family: var(--mono); }
+.sb-nav { padding: 12px 10px; flex: 1; overflow-y: auto; }
+.nav-sec { font-size: 9.5px; font-weight: 700; color: rgba(255,255,255,.3); text-transform: uppercase; letter-spacing: .12em; padding: 12px 8px 5px; }
+.ni { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 7px; color: rgba(255,255,255,.55); cursor: pointer; transition: .15s; font-size: 13px; margin-bottom: 2px; user-select: none; }
+.ni svg { width: 15px; height: 15px; flex-shrink: 0; }
+.ni:hover { background: rgba(255,255,255,.08); color: #fff; }
+.ni.active { background: var(--blue); color: #fff; }
+
+/* ── Main ── */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.topbar { padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fff; border-bottom: 1px solid var(--border); flex-shrink: 0; box-shadow: var(--shadow); z-index: 40; }
+.topbar h1 { font-size: 18px; font-weight: 700; color: var(--txt); }
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.month-tabs { display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.mt { padding: 6px 14px; font-size: 12px; color: var(--txt-sub); cursor: pointer; transition: .15s; user-select: none; font-weight: 500; }
+.mt:hover { color: var(--txt); background: var(--border); }
+.mt.active { background: var(--blue); color: #fff; }
+.btn { padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 6px; transition: .15s; font-family: var(--font); white-space: nowrap; }
+.btn-ghost { background: #fff; border-color: var(--border); color: var(--txt-sub); }
+.btn-ghost:hover { border-color: var(--blue); color: var(--blue); }
+.btn-primary { background: var(--blue); color: #fff; border: none; }
+.btn-primary:hover { background: #1D4ED8; }
+
+/* ── Scroll ── */
+.scroll { flex: 1; overflow-y: auto; padding: 22px 28px 48px; }
+.scroll::-webkit-scrollbar { width: 5px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── Page ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── KPI ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 18px; }
+.kpi { background: #fff; border: 1px solid var(--border); border-radius: var(--r); padding: 18px 20px; position: relative; overflow: hidden; box-shadow: var(--shadow); transition: box-shadow .2s; }
+.kpi:hover { box-shadow: var(--shadow2); }
+.kpi::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent, var(--blue)); }
+.kpi-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 10px; background: var(--accent-l, var(--blue-l)); display: flex; align-items: center; justify-content: center; }
+.kpi-icon svg { width: 18px; height: 18px; }
+.kpi-lbl { font-size: 10.5px; font-weight: 600; color: var(--txt-dim); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+.kpi-val { font-size: 26px; font-weight: 700; font-family: var(--mono); color: var(--txt); line-height: 1; }
+.kpi-unit { font-size: 13px; color: var(--txt-dim); margin-left: 2px; font-family: var(--font); font-weight: 400; }
+.kpi-sub { font-size: 11px; color: var(--txt-dim); margin-top: 4px; }
+
+/* ── Charts ── */
+.charts-row { display: grid; grid-template-columns: 1.6fr 1fr; gap: 14px; margin-bottom: 18px; }
+.card { background: #fff; border: 1px solid var(--border); border-radius: var(--r); padding: 20px; box-shadow: var(--shadow); }
+.card-title { font-size: 13px; font-weight: 600; color: var(--txt); margin-bottom: 4px; }
+.card-sub { font-size: 11px; color: var(--txt-dim); margin-bottom: 16px; }
+.canvas-wrap { position: relative; min-height: 220px; }
+
+/* ── Filter bar ── */
+.filter-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #fff; border: 1px solid var(--border); border-radius: var(--r); padding: 10px 16px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.filter-bar select { background: var(--bg-input); border: 1px solid var(--border); color: var(--txt); padding: 6px 28px 6px 10px; border-radius: 7px; font-size: 12px; cursor: pointer; outline: none; font-family: var(--font); appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394A3B8'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; transition: border-color .15s; }
+.filter-bar select:focus { border-color: var(--blue); outline: none; }
+.filter-count { font-size: 11px; color: var(--txt-dim); margin-left: auto; font-family: var(--mono); }
+.search-input { background: var(--bg-input); border: 1px solid var(--border); color: var(--txt); padding: 6px 10px 6px 30px; border-radius: 7px; font-size: 12px; outline: none; font-family: var(--font); position: relative; width: 180px; transition: border-color .15s; }
+.search-input:focus { border-color: var(--blue); }
+.search-wrap { position: relative; }
+.search-wrap svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; color: var(--txt-dim); pointer-events: none; }
+
+/* ── Table ── */
+.tbl-card { background: #fff; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); }
+.tbl-head-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--bg); }
+.tbl-scroll { overflow-x: auto; max-height: 420px; overflow-y: auto; }
+.tbl-scroll::-webkit-scrollbar { height: 4px; width: 4px; }
+.tbl-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+table { width: 100%; border-collapse: collapse; min-width: 960px; }
+thead { position: sticky; top: 0; z-index: 10; }
+thead th { background: var(--bg); padding: 9px 14px; text-align: left; font-size: 10px; font-weight: 700; color: var(--txt-dim); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; border-bottom: 1px solid var(--border); }
+tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 12px; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr { transition: background .1s; }
+tbody tr:hover td { background: var(--blue-l); }
+.mono { font-family: var(--mono); }
+.fw6 { font-weight: 600; }
+
+/* Badge */
+.badge { padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; }
+.b-blue   { background: var(--blue-l);   color: var(--blue); }
+.b-red    { background: var(--red-l);    color: var(--red); }
+.b-amber  { background: var(--amber-l);  color: var(--amber); }
+.b-green  { background: var(--green-l);  color: var(--green); }
+.b-purple { background: var(--purple-l); color: var(--purple); }
+.b-teal   { background: var(--teal-l);   color: var(--teal); }
+
+/* Progress */
+.prog { display: flex; align-items: center; gap: 8px; }
+.prog-bar { width: 52px; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+.prog-fill { height: 100%; border-radius: 3px; }
+
+/* Gubun tag */
+.gtag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+.gtag-입고 { background: #EFF6FF; color: #2563EB; }
+.gtag-공정 { background: #FFF7ED; color: #C2410C; }
+.gtag-출하 { background: #F0FDF4; color: #15803D; }
+
+/* ── Upload Modal ── */
+.modal-bg { position: fixed; inset: 0; background: rgba(15,23,42,.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: .2s; }
+.modal-bg.open { opacity: 1; pointer-events: all; }
+.modal { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 28px; width: 480px; max-width: 95vw; box-shadow: 0 20px 60px rgba(0,0,0,.15); animation: slideUp .2s ease; }
+@keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-title { font-size: 16px; font-weight: 700; color: var(--txt); margin-bottom: 4px; }
+.modal-sub { font-size: 12px; color: var(--txt-dim); margin-bottom: 18px; }
+.drop-zone { border: 2px dashed var(--border2); border-radius: 10px; padding: 28px 20px; text-align: center; cursor: pointer; transition: .2s; position: relative; background: var(--bg); }
+.drop-zone:hover, .drop-zone.over { border-color: var(--blue); background: var(--blue-l); }
+.drop-ico { font-size: 28px; margin-bottom: 8px; }
+.drop-txt { font-size: 13px; color: var(--txt-sub); font-weight: 500; }
+.drop-hint { font-size: 11px; color: var(--txt-dim); margin-top: 5px; }
+.drop-file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.col-guide { margin-top: 12px; padding: 10px 14px; background: var(--bg); border-radius: 8px; font-size: 11px; color: var(--txt-dim); line-height: 1.7; border: 1px solid var(--border); }
+.col-guide strong { color: var(--txt-sub); }
+.steps { list-style: none; margin-top: 14px; display: none; }
+.step { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; color: var(--txt-dim); }
+.step.doing { color: var(--blue); }
+.step.done { color: var(--green); }
+.step.fail { color: var(--red); }
+.step-ico { width: 16px; text-align: center; font-size: 13px; }
+.preview-box { margin-top: 12px; max-height: 150px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; display: none; font-size: 11px; }
+.preview-box table { width: 100%; border-collapse: collapse; }
+.preview-box th { background: var(--bg); padding: 5px 10px; font-size: 10px; color: var(--txt-dim); text-align: left; border-bottom: 1px solid var(--border); }
+.preview-box td { padding: 5px 10px; border-bottom: 1px solid var(--border); color: var(--txt-sub); }
+.upload-msg { font-size: 12px; margin-top: 10px; min-height: 18px; text-align: center; font-weight: 500; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 28px; padding: 11px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; background: var(--green); color: #fff; box-shadow: var(--shadow2); transform: translateY(60px); opacity: 0; transition: .3s; z-index: 2000; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.error { background: var(--red); }
+
+/* Monthly */
+.monthly-charts { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+/* Section divider */
+.sec-label { font-size: 11px; font-weight: 700; color: var(--txt-dim); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.sec-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* 불량율 color coding */
+.rate-high { color: var(--red); font-weight: 600; }
+.rate-mid  { color: var(--amber); font-weight: 600; }
+.rate-low  { color: var(--green); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sb">
+  <div class="sb-head">
+    <div class="brand">
+      <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAgNDQiIHdpZHRoPSIxNjAiIGhlaWdodD0iNDQiPgogIDwhLS0gUCDsi6zrs7wg66eI7YGsOiDtjIzrnoAg7JuQ7ZiVIOuwsOqyvSArIO2dsCBQIC0tPgogIDxjaXJjbGUgY3g9IjIyIiBjeT0iMjIiIHI9IjIwIiBmaWxsPSIjMUI0RjlFIi8+CiAgPHRleHQgeD0iMjIiIHk9IjI5IiBmb250LWZhbWlseT0iQXJpYWwgQmxhY2ssIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSI5MDAiCiAgICAgICAgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlA8L3RleHQ+CiAgPCEtLSBQQVNFQ08g7YWN7Iqk7Yq4IC0tPgogIDx0ZXh0IHg9IjUwIiB5PSIzMCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIgogICAgICAgIGZpbGw9IiMxQjRGOUUiIGxldHRlci1zcGFjaW5nPSIxIj5QQVNFQ088L3RleHQ+Cjwvc3ZnPg==" alt="PASECO" style="height:34px;filter:brightness(0) invert(1);flex-shrink:0">
+      <div style="margin-top:8px;padding:6px 10px;background:rgba(37,99,235,.25);border-left:3px solid #60A5FA;border-radius:0 6px 6px 0">
+        <div style="font-size:13px;font-weight:700;color:#93C5FD;letter-spacing:.02em;line-height:1.3">수입 불량 현황</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;">관리 시스템</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nav-sec">현황</div>
+    <div class="ni active" id="ni-monthly-view" onclick="gotoPage('monthly-view',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      수입 불량 현황
+    </div>
+    <div class="ni" id="ni-list" onclick="gotoPage('list',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+      전체 리스트
+    </div>
+    <div class="ni" id="ni-partner" onclick="gotoPage('partner',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      협력사 분석
+    </div>
+    <div class="nav-sec">관리</div>
+    <div class="ni" onclick="openModal()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+      데이터 추가 업로드
+    </div>
+    <div class="ni" onclick="doExportCSV()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      CSV 내보내기
+    </div>
+    <div class="ni" onclick="window.print()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+      리포트 출력
+    </div>
+  </nav>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main">
+  <div class="topbar">
+    <h1 id="page-title">수입 불량 현황</h1>
+    <div class="topbar-right">
+      <div class="month-tabs" id="month-tabs">
+        <div class="mt active" onclick="changeMonth('전체',this)">전체</div>
+        <div class="mt" onclick="changeMonth('1월',this)">1월</div>
+        <div class="mt" onclick="changeMonth('2월',this)">2월</div>
+        <div class="mt" onclick="changeMonth('3월',this)">3월</div>
+        <div class="mt" onclick="changeMonth('4월',this)">4월</div>
+      </div>
+      <button class="btn btn-ghost" onclick="doExportCSV()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        CSV
+      </button>
+      <button class="btn btn-primary" onclick="openModal()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        데이터 업로드
+      </button>
+    </div>
+  </div>
+
+  <div class="scroll">
+
+    <!-- ══ PAGE: 월별 현황 ══ -->
+    <div class="page active" id="page-monthly-view">
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-title">협력사별 불량 건수</div>
+          <div class="card-sub" id="bar-sub">현재 선택된 기간</div>
+          <div class="canvas-wrap"><canvas id="barChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">불량 유형 분포</div>
+          <div class="card-sub">불량내용 키워드 기준</div>
+          <div class="canvas-wrap"><canvas id="donutChart"></canvas></div>
+        </div>
+      </div>
+      <div class="charts-row" style="grid-template-columns:1fr 1fr">
+        <div class="card">
+          <div class="card-title">월별 불량 건수 추이</div>
+          <div class="card-sub">1월 ~ 4월</div>
+          <div class="canvas-wrap"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">구분별 비율 (입고 / 공정 / 출하)</div>
+          <div class="card-sub">현재 기간 기준</div>
+          <div class="canvas-wrap"><canvas id="gubunChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: 전체 리스트 ══ -->
+    <div class="page" id="page-list">
+      <div class="filter-bar">
+        <svg width="14" height="14" fill="none" stroke="var(--txt-dim)" stroke-width="2" viewBox="0 0 24 24"><path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
+        <select id="fl-month" onchange="runFilter()"><option value="">전체 월</option></select>
+        <select id="fl-product" onchange="runFilter()"><option value="">전체 제품</option></select>
+        <select id="fl-partner" onchange="runFilter()"><option value="">전체 협력사</option></select>
+        <select id="fl-gubun" onchange="runFilter()">
+          <option value="">전체 구분</option>
+          <option value="입고">입고</option>
+          <option value="공정">공정</option>
+          <option value="출하">출하</option>
+        </select>
+        <div class="search-wrap">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input class="search-input" id="fl-search" placeholder="불량내용 검색..." oninput="runFilter()">
+        </div>
+        <button class="btn btn-ghost" style="padding:5px 11px;font-size:11px" onclick="resetFilters()">초기화</button>
+        <span class="filter-count" id="fcount"></span>
+      </div>
+      <div class="tbl-card">
+        <div class="tbl-head-row">
+          <div style="font-size:13px;font-weight:600">검수 상세 리스트</div>
+          <span id="row-count" style="font-size:11px;color:var(--txt-dim);font-family:var(--mono)"></span>
+        </div>
+        <div class="tbl-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>No</th><th>월</th><th>날짜</th><th>제품명</th><th>부품명</th><th>협력사</th>
+                <th>구분</th><th>LOT 수량</th><th>불량 수</th><th>불량율</th><th>불량내용</th><th>조치내용</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: 협력사 분석 ══ -->
+    <div class="page" id="page-partner">
+      <div class="monthly-charts">
+        <div class="card">
+          <div class="card-title">협력사별 누적 불량 건수 (상위 15)</div>
+          <div class="card-sub">1~4월 합산</div>
+          <div class="canvas-wrap" style="min-height:320px"><canvas id="partnerBarChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">협력사별 평균 불량율</div>
+          <div class="card-sub">불량율 평균값 기준</div>
+          <div class="canvas-wrap" style="min-height:320px"><canvas id="partnerRateChart"></canvas></div>
+        </div>
+      </div>
+      <div class="tbl-card">
+        <div class="tbl-head-row"><div style="font-size:13px;font-weight:600">협력사 종합 평가</div></div>
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr><th>협력사</th><th>불량 건수</th><th>총 LOT</th><th>총 불량수</th><th>평균 불량율</th><th>주요 불량유형</th><th>평가 등급</th></tr></thead>
+            <tbody id="partner-tbl"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- ═══ MODAL ═══ -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-title">데이터 추가 업로드</div>
+    <div class="modal-sub">엑셀(.xlsx/.xls) 또는 CSV 파일 업로드 시 현재 데이터에 추가 반영됩니다</div>
+    <div class="drop-zone" id="dz">
+      <div class="drop-ico" id="dico">📂</div>
+      <div class="drop-txt" id="dtxt">파일을 드래그하거나 클릭하여 선택</div>
+      <div class="drop-hint">.xlsx · .xls · .csv | 최대 10MB</div>
+      <input type="file" class="drop-file-input" id="file-input" accept=".xlsx,.xls,.csv" onchange="handleFile(this.files[0])">
+    </div>
+    <div class="col-guide">
+      <strong>✅ 원본 엑셀 파일 그대로 드래그해도 됩니다</strong><br>
+      제목행·헤더행·서브헤더행 자동 감지 → 모든 시트 자동 처리<br>
+      <span>일반 엑셀도 지원: 날짜·제품명·부품명·협력사·LOT수량·불량율·불량내용·조치내용</span>
+    </div>
+    <ul class="steps" id="steps">
+      <li class="step" id="s1"><span class="step-ico">○</span>파일 읽는 중...</li>
+      <li class="step" id="s2"><span class="step-ico">○</span>데이터 파싱 중...</li>
+      <li class="step" id="s3"><span class="step-ico">○</span>컬럼 검증 중...</li>
+      <li class="step" id="s4"><span class="step-ico">○</span>미리보기 생성 중...</li>
+    </ul>
+    <div class="preview-box" id="preview">
+      <table><thead id="ph"></thead><tbody id="pb"></tbody></table>
+    </div>
+    <div class="upload-msg" id="umsg"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">닫기</button>
+      <button class="btn btn-primary" id="apply-btn" disabled onclick="applyUpload()">데이터 반영하기</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══ 실제 데이터 (엑셀에서 추출) ═══
+const EXCEL_DATA = {"1월": [{"id": 1, "month": "1월", "date": "1/5", "product": "아이콘프로", "part": "COVER FRONT LOWER", "partner": "제성", "gubun": "공정", "lot": 1200, "bad": 3, "rate": 10.0, "detail": "필름 오염 불량 및 누락", "action": "사내재고 전수 선별 진행", "note": "이물 유입 방지를 위해 필름 사이즈 전폭 3mm 축소 요청 (사이즈 1:1로 편측 부착 가능성)"}, {"id": 2, "month": "1월", "date": "1/8", "product": "아이콘2.0", "part": "COVER SIDE R (PK)", "partner": "범진", "gubun": "입고", "lot": 880, "bad": 3, "rate": 30.0, "detail": "외관 흑점 발생", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 3, "month": "1월", "date": "1/8", "product": "아이콘2.0", "part": "TOP-COVER (SL)", "partner": "범진", "gubun": "입고", "lot": 800, "bad": 2, "rate": 20.0, "detail": "외관 과사상 불량", "action": "전수 선별 후 투입 完", "note": "-"}, {"id": 4, "month": "1월", "date": "1/8", "product": "아이콘 프로", "part": "COVER SIDE R (WT)", "partner": "제성", "gubun": "입고", "lot": 1400, "bad": 4, "rate": 40.0, "detail": "외관 흑점 발생", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 5, "month": "1월", "date": "1/8", "product": "아이콘 프로", "part": "COVER FRONT LOWER", "partner": "제성", "gubun": "입고", "lot": 1500, "bad": 3, "rate": 30.0, "detail": "외관 필름 오염 발생", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 6, "month": "1월", "date": "1/8", "product": "아이콘2.0", "part": "히터 브라켓 아세이", "partner": "QBS", "gubun": "공정", "lot": 1200, "bad": 2, "rate": 0.2, "detail": "바이메탈 WIRE 단자 이탈", "action": "사내재고 전수 선별 진행", "note": "-"}, {"id": 7, "month": "1월", "date": "1/12", "product": "아이콘 프로", "part": "TRAY ASSY", "partner": "제성", "gubun": "공정", "lot": 544, "bad": 4, "rate": 0.7, "detail": "내부 이물 유입 및 라벨 누락", "action": "사내재고 전수 선별 후 투입 진행", "note": "-"}, {"id": 8, "month": "1월", "date": "1/12", "product": "아이콘 프로", "part": "COVER TOP", "partner": "제성", "gubun": "입고", "lot": 544, "bad": 2, "rate": 20.0, "detail": "라벨 위치 불량", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 9, "month": "1월", "date": "1/12", "product": "의류청정기", "part": "CASE FILTER", "partner": "그린테크솔루션", "gubun": "입고", "lot": 510, "bad": 2, "rate": 10.0, "detail": "외관 오염 본딩 자국", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 10, "month": "1월", "date": "1/13", "product": "아이콘2.0", "part": "냉수 탱크 아세이", "partner": "동인하이텍", "gubun": "공정", "lot": 1000, "bad": 3, "rate": 0.3, "detail": "박스팬 브라켓 및 동파이프 휨", "action": "사내재고 전수 반출 후 대체품 입고", "note": "협력사 물류 운송중 1파렛트 낙하 이력 확인"}, {"id": 11, "month": "1월", "date": "1/13", "product": "아이콘2.0", "part": "히터 브라켓 아세이", "partner": "신우엠테크", "gubun": "공정", "lot": 500, "bad": 3, "rate": 0.6, "detail": "와이어 정형 불량", "action": "사내재고 전수 재작업", "note": "-"}, {"id": 12, "month": "1월", "date": "1/13", "product": "아이콘 프로", "part": "사용설명 ASSY", "partner": "한성칼라", "gubun": "입고", "lot": 544, "bad": 2, "rate": 20.0, "detail": "외관 이물 발생", "action": "입고 LOT 반출 후 대체품 입고", "note": "입고 전 사전 조치 完"}, {"id": 13, "month": "1월", "date": "1/15", "product": "P-120000", "part": "POWER CORD", "partner": "엠케이", "gubun": "입고", "lot": 20, "bad": 1, "rate": 5.0, "detail": "외관 슬리브 1개소 누락", "action": "금일 입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 14, "month": "1월", "date": "1/20", "product": "아이콘프로", "part": "DECO FRONT LOWER", "partner": "제성", "gubun": "입고", "lot": 432, "bad": 2, "rate": 20.0, "detail": "외관 필름 오염 및 누락, 파우셋 오조립 불량", "action": "전수 선별 후 투입 完", "note": "입고 전 사전 조치 完"}, {"id": 15, "month": "1월", "date": "1/20", "product": "ESS", "part": "E5SP BUSBAR", "partner": "쓰리디테크", "gubun": "공정", "lot": 2500, "bad": 3, "rate": 0.1, "detail": "외관 불량 및 도금 박리 불량", "action": "사내재고 회수 후 선별 및 재도금 예정", "note": "-"}, {"id": 16, "month": "1월", "date": "1/21", "product": "아이콘2.0", "part": "TRAY ASSY", "partner": "제성", "gubun": "입고", "lot": 2711, "bad": 1, "rate": 10.0, "detail": "외관 분리라벨 누락", "action": "전수 선별 후 투입 完", "note": "입고 전 사전 조치 完"}, {"id": 17, "month": "1월", "date": "1/21", "product": "아이콘프로", "part": "TRAY ASSY", "partner": "제성", "gubun": "공정", "lot": 2711, "bad": 1, "rate": 0.0, "detail": "외관 분리라벨 누락", "action": "전수 선별 후 투입 完", "note": "-"}, {"id": 18, "month": "1월", "date": "1/22", "product": "아이콘2.0", "part": "DECO FRONT LOWER", "partner": "제성", "gubun": "입고", "lot": 555, "bad": 1, "rate": 10.0, "detail": "외관 휨 불량 발생", "action": "전수 선별 후 투입 完", "note": "입고 전 사전 조치 完"}, {"id": 19, "month": "1월", "date": "1/23", "product": "아이콘2.0", "part": "COVER-BODY ASSY", "partner": "광명", "gubun": "입고", "lot": 1536, "bad": 1, "rate": 0.0, "detail": "스크류 누락 발생", "action": "사내재고 전수 선별", "note": "추가 불량 없음"}, {"id": 20, "month": "1월", "date": "1/23", "product": "의류청정기", "part": "LOUVER-DUCT", "partner": "그린테크솔루션", "gubun": "입고", "lot": 80, "bad": 3, "rate": 30.0, "detail": "외관 오염 불량", "action": "세척 후 투입 및 사내재고 전수 반출", "note": "-"}, {"id": 21, "month": "1월", "date": "1/26", "product": "아이콘2.0", "part": "COVER TOP", "partner": "범진", "gubun": "공정", "lot": 1920, "bad": 3, "rate": 0.1, "detail": "외관 찍힘 불량", "action": "전수 반출 조치 및 사내 재고 확인", "note": "-"}, {"id": 22, "month": "1월", "date": "1/28", "product": "아이콘프로", "part": "COVER REAR", "partner": "제성", "gubun": "입고", "lot": 900, "bad": 3, "rate": 30.0, "detail": "외관 사출 미성형", "action": "전수 선별 후 투입 진행", "note": "입고 전 사전 조치 完"}, {"id": 23, "month": "1월", "date": "1/28", "product": "의류청정기", "part": "BODY-UPPER", "partner": "범진", "gubun": "입고", "lot": 86, "bad": 3, "rate": 30.0, "detail": "외관 흑줄 발생", "action": "전수 선별 후 투입 진행", "note": "입고 전 사전 조치 完"}], "2월": [{"id": 1, "month": "2월", "date": "2/3", "product": "아이콘2.0", "part": "COVER BODY ASSY", "partner": "광명", "gubun": "입고", "lot": 1140, "bad": 2, "rate": 20.0, "detail": "외관 사출 미성형", "action": "사내재고 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 2, "month": "2월", "date": "2/3", "product": "아이콘2.0", "part": "COVER FRONT ASSY", "partner": "에코엘이디", "gubun": "입고", "lot": 1100, "bad": 1, "rate": 10.0, "detail": "외관 필름 과사상 불량", "action": "사내재고 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 3, "month": "2월", "date": "2/4", "product": "아이콘2.0", "part": "PIPE MODULE ASSY", "partner": "워피온", "gubun": "공정", "lot": 1350, "bad": 2, "rate": 0.1, "detail": "내부 사출 막힘 불량 발생", "action": "사내재고 전수 선별", "note": "추가 불량 없음"}, {"id": 4, "month": "2월", "date": "2/5", "product": "의류청정기", "part": "BODY AIR SHOP ASSY", "partner": "새한솔루텍", "gubun": "입고", "lot": 792, "bad": 3, "rate": 30.0, "detail": "외관 오염 불량", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 5, "month": "2월", "date": "2/5", "product": "의류청정기", "part": "HANDLE HUMIDITY FILTER", "partner": "새한솔루텍", "gubun": "공정", "lot": 170, "bad": 1, "rate": 0.6, "detail": "사출 미성형 불량", "action": "대체품 입고 및 선별 투입 예정", "note": "-"}, {"id": 6, "month": "2월", "date": "2/9", "product": "의류청정기", "part": "열교환기 아세이", "partner": "대한공조", "gubun": "공정", "lot": 480, "bad": 2, "rate": 0.4, "detail": "센서 브라켓 용접 위치 불량", "action": "사내재고 전수 선별", "note": "추가 불량 없음"}, {"id": 7, "month": "2월", "date": "2/9", "product": "의류청정기", "part": "PIPE DISCHARGE ASSY", "partner": "유남전기", "gubun": "공정", "lot": 707, "bad": 3, "rate": 0.4, "detail": "용접 위치 불량", "action": "사내재고 전수 선별", "note": "추가 불량 없음"}, {"id": 8, "month": "2월", "date": "2/9", "product": "가스쿡탑", "part": "HARNESS WIRE", "partner": "하이큐태크", "gubun": "입고", "lot": 460, "bad": 1, "rate": 10.0, "detail": "WIRE 단자 오배선", "action": "전수 선별", "note": "차기 LOT 입고 시 협력사 입회 검사"}, {"id": 9, "month": "2월", "date": "2/10", "product": "PWA-3300", "part": "POWER CORD", "partner": "통일전자", "gubun": "입고", "lot": 186, "bad": 92, "rate": 49.0, "detail": "스토퍼 역삽 불량", "action": "전수 선별", "note": "-"}, {"id": 10, "month": "2월", "date": "2/11", "product": "아이콘 프로", "part": "BASE ASSY", "partner": "제성", "gubun": "공정", "lot": 362, "bad": 14, "rate": 3.8, "detail": "SENSOR-LEAKAGE 스크류 설체결", "action": "사내재고 전수 선별", "note": "근본 대책 수립 요청"}, {"id": 11, "month": "2월", "date": "2/11", "product": "아이콘 프로", "part": "COVER SIDE L", "partner": "제성", "gubun": "입고", "lot": 362, "bad": 2, "rate": 0, "detail": "상단부 BURR 불량", "action": "전수 BURR 사상 진행", "note": "진행중"}, {"id": 12, "month": "2월", "date": "2/12", "product": "아이콘 프로", "part": "COVER SIDE L/R", "partner": "제성", "gubun": "입고", "lot": 360, "bad": 0, "rate": 0, "detail": "스크류 체결부 BURR", "action": "사내재고 전수 BURR 사상 진행", "note": "진행중"}, {"id": 13, "month": "2월", "date": "2/12", "product": "아이콘 프로", "part": "TOP COVER", "partner": "제성", "gubun": "입고", "lot": 1988, "bad": 1, "rate": 10.0, "detail": "라벨 위치 불량", "action": "전수 선별", "note": "추가 불량 없음"}, {"id": 14, "month": "2월", "date": "2/19", "product": "아이콘 프로", "part": "COVER SIDE L", "partner": "제성", "gubun": "공정", "lot": 500, "bad": 0, "rate": 0, "detail": "과사상으로 인한 전면 좌측 하단면 노출 불량", "action": "사내재고 전수 선별 및 금형 수리 예정", "note": "협력사 방문하여 외관 상태 확인 完"}, {"id": 15, "month": "2월", "date": "2/20", "product": "아이콘2.0", "part": "냉수-탱크 아세이", "partner": "동인하이텍", "gubun": "입고", "lot": 1024, "bad": 2, "rate": 10.0, "detail": "팬 휨 불량 및 와이어 돌출 치수 미달  (SPEC : 70mm → 현물 : 45mm) _ n=2/12", "action": "전수 재검사 및 재작업", "note": "부적합 보고서 발행 完"}, {"id": 16, "month": "2월", "date": "2/20", "product": "아이콘2.0", "part": "COVER FRONT ASSY", "partner": "알비코리아", "gubun": "입고", "lot": 900, "bad": 1, "rate": 10.0, "detail": "상단부 필름 외관 불량", "action": "입고 LOT 전수 선별 후 투입", "note": "부적합 보고서 발행 完"}, {"id": 17, "month": "2월", "date": "2/20", "product": "아이콘2.0", "part": "히터-브라켓 아세이", "partner": "신우엠테크", "gubun": "입고", "lot": 1500, "bad": 2, "rate": 20.0, "detail": "온도센서 와이어 피복 손상 및 단자부 오염", "action": "입고 LOT 전수 선별 후 투입", "note": "부적합 보고서 발행 完"}, {"id": 18, "month": "2월", "date": "2/20", "product": "의류청정기", "part": "DOOR ASSY", "partner": "범진아이엔디", "gubun": "입고", "lot": 120, "bad": 1, "rate": 10.0, "detail": "BODY PANTS 과사상(사출 불량)으로 인한  GAP 불량", "action": "전수 재작업", "note": "부적합 보고서 발행 完"}, {"id": 19, "month": "2월", "date": "2/24", "product": "의류청정기", "part": "GRILLE CABINET", "partner": "새한솔루텍", "gubun": "공정", "lot": 940, "bad": 0, "rate": 0, "detail": "외관 휨 불량 발생", "action": "재고 사용 전 휨 최소화를 위한 난로 비치", "note": "도면 내 휨 관련 기준없음 근본 대책 수립 예정"}, {"id": 20, "month": "2월", "date": "2/25", "product": "아이콘2.0", "part": "냉수-탱크 아세이", "partner": "신우엠테크", "gubun": "공정", "lot": 1880, "bad": 3, "rate": 0.1, "detail": "워터리스 검사 막힘 불량 탱크 니플부 변형", "action": "발포공정상 실리콘 캡 미제거로 인한 막힘 확인 완제품 생산분 전수 재작업 결정", "note": "코웨이 김호선 차장 통보 및 내방하여 현상 확인 完"}, {"id": 21, "month": "2월", "date": "2/25", "product": "아이콘2.0", "part": "COVER TOP", "partner": "범진아이엔디", "gubun": "입고", "lot": 1067, "bad": 3, "rate": 30.0, "detail": "외관 BURR 및 흑점", "action": "입고  LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 22, "month": "2월", "date": "2/25", "product": "아이콘2.0", "part": "히터-브라켓 아세이", "partner": "은성산업", "gubun": "입고", "lot": 1024, "bad": 8, "rate": 80.0, "detail": "와이어 피복 손상 불량", "action": "입고  LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 23, "month": "2월", "date": "2/25", "product": "의류청정기", "part": "DOOR ASSY", "partner": "범진아이엔디", "gubun": "입고", "lot": 40, "bad": 8, "rate": 80.0, "detail": "가스켓 들뜸 및 오염, 갭 단차", "action": "입고  LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 24, "month": "2월", "date": "2/26", "product": "아이콘2.0", "part": "COVER FRONT ASSY", "partner": "알비코리아", "gubun": "입고", "lot": 1067, "bad": 3, "rate": 30.0, "detail": "외관 BURR 및 흑점", "action": "입고  LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 25, "month": "2월", "date": "2/26", "product": "의류청정기", "part": "DOOR ASSY", "partner": "범진아이엔디", "gubun": "입고", "lot": 40, "bad": 8, "rate": 80.0, "detail": "하단부 이물 불량", "action": "입고  LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}], "3월": [{"id": 1, "month": "3월", "date": "2/27", "product": "아이콘 2.0", "part": "POWER PBA", "partner": "알에프텍", "gubun": "입고", "lot": 786, "bad": 5, "rate": 12.5, "detail": "필름 부착 상태 불량", "action": "입고 LOT 전수 선별 후 투입", "note": "추가 불량 7EA"}, {"id": 2, "month": "3월", "date": "2/27", "product": "아이콘 2.0", "part": "COVER REAR", "partner": "제이앤지", "gubun": "입고", "lot": 3450, "bad": 2, "rate": 5.7, "detail": "파손 불량", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 3, "month": "3월", "date": "2/27", "product": "아이콘 2.0", "part": "FILTER", "partner": "제이앤지", "gubun": "입고", "lot": 9450, "bad": 1, "rate": 2.1, "detail": "밀핀부 오염", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 4, "month": "3월", "date": "2/27", "product": "얼음정수기  미니", "part": "스크류 얼음 공급 아세이", "partner": "재원정밀", "gubun": "입고", "lot": 20, "bad": 1, "rate": 5.0, "detail": "외관 오염 불량", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 5, "month": "3월", "date": "2/27", "product": "얼음정수기  미니", "part": "가이드 디스펜서 추출 아세이", "partner": "재원정밀", "gubun": "입고", "lot": 20, "bad": 20, "rate": 100.0, "detail": "치수 부적합 (SPEC : 58 ± 0.2 / 현물 : 58.93) (n=20/20)", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 6, "month": "3월", "date": "2/27", "product": "얼음정수기  미니", "part": "트레이 얼음 아세이", "partner": "재원정밀", "gubun": "입고", "lot": 20, "bad": 20, "rate": 100.0, "detail": "외관 오염 불량", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 7, "month": "3월", "date": "2/27", "product": "얼음정수기  미니", "part": "FRAME FILTER ASSY", "partner": "재원정밀", "gubun": "입고", "lot": 20, "bad": 20, "rate": 100.0, "detail": "수축", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 8, "month": "3월", "date": "2/27", "product": "아이콘2.0", "part": "POWER CORD", "partner": "엠케이", "gubun": "입고", "lot": 3000, "bad": 1, "rate": 6.0, "detail": "Burr", "action": "입고  LOT 전수 선별 및 사상 작업 完", "note": "입고 전 사전 조치 完"}, {"id": 9, "month": "3월", "date": "2/27", "product": "아이콘2.0", "part": "냉수탱크 아세이", "partner": "신우엠테크", "gubun": "입고", "lot": 1120, "bad": 2, "rate": 10.0, "detail": "외관 발포 상태 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 10, "month": "3월", "date": "2/27", "product": "아이콘 프로", "part": "COVER FRONT LOWER", "partner": "제성", "gubun": "입고", "lot": 1500, "bad": 1, "rate": 3.3, "detail": "외관 오염 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 11, "month": "3월", "date": "2/27", "product": "아이콘 프로", "part": "COVER REAR", "partner": "제성", "gubun": "입고", "lot": 1500, "bad": 2, "rate": 13.3, "detail": "외관 오염 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 12, "month": "3월", "date": "2/27", "product": "PWA-3400W", "part": "FILTER ASSY", "partner": "제이앤지", "gubun": "입고", "lot": 696, "bad": 1, "rate": 2.85, "detail": "Burr", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 13, "month": "3월", "date": "2/27", "product": "PWA-3500PS", "part": "ONE BOARD ASSY", "partner": "위너텍", "gubun": "공정", "lot": 400, "bad": 5, "rate": 1.2, "detail": "히터-싱크 스크류 설체결", "action": "사내재고 전수 재작업", "note": "-"}, {"id": 14, "month": "3월", "date": "3/3", "product": "의류청정기", "part": "DOOR INNER ASSY", "partner": "범진아이엔디", "gubun": "입고", "lot": 80, "bad": 4, "rate": 40.0, "detail": "캡 조립 불량 및 단차, 오염", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 15, "month": "3월", "date": "3/3", "product": "아이콘2.0", "part": "COVER FRONT LOWR (SL)", "partner": "그린테크 솔루션", "gubun": "입고", "lot": 532, "bad": 2, "rate": 20.0, "detail": "스크래치", "action": "입고 LOT 전수 선별", "note": "포장 방법 개선 협의 完 개별 니트롱지 포장"}, {"id": 16, "month": "3월", "date": "3/3", "product": "아이콘2.0", "part": "COVER FRONT LOWR (GR)", "partner": "그린테크 솔루션", "gubun": "입고", "lot": 1008, "bad": 2, "rate": 20.0, "detail": "스크래치 및 사출 불량", "action": "입고 LOT 전수 선별", "note": "포장 방법 개선 협의 完 개별 니트롱지 포장"}, {"id": 17, "month": "3월", "date": "3/3", "product": "아이콘2.0", "part": "VALVE DIRECT FEED", "partner": "플로우웨이", "gubun": "입고", "lot": 2880, "bad": 2, "rate": 20.0, "detail": "인서트 사출 와이어 끝단부 백화", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 18, "month": "3월", "date": "3/3", "product": "아이콘2.0", "part": "냉수-탱크 아세이", "partner": "신우엠테크", "gubun": "입고", "lot": 600, "bad": 3, "rate": 30.0, "detail": "입수부 니쁠부 안쪽 이물 및 전자선 가교 들뜸 & 포장 박스내 이물(고무줄)", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 19, "month": "3월", "date": "3/3", "product": "아이콘2.0", "part": "COVER SIDE R", "partner": "제성", "gubun": "입고", "lot": 500, "bad": 2, "rate": 20.0, "detail": "전면부 찍힘", "action": "입고 LOT 전수 반출 및 재작업", "note": "입고 전 사전 조치 完"}, {"id": 20, "month": "3월", "date": "3/3", "product": "아이콘2.0", "part": "PBA 파워 아세이", "partner": "알에프텍", "gubun": "입고", "lot": 1028, "bad": 2, "rate": 20.0, "detail": "필름 부착 상태 불량", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 21, "month": "3월", "date": "3/3", "product": "PWA-3400W", "part": "FILTER ASSY", "partner": "제이앤지", "gubun": "입고", "lot": 696, "bad": 2, "rate": 20.0, "detail": "오염 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 22, "month": "3월", "date": "3/3", "product": "아이콘2.0", "part": "POWER CORD ASSY", "partner": "엠케이", "gubun": "공정", "lot": 2450, "bad": 2, "rate": 0.1, "detail": "외관 이물 불량", "action": "사내재고 전수 선별", "note": "추가 불량 없음"}, {"id": 23, "month": "3월", "date": "3/4", "product": "아이콘 프로", "part": "COVER SIDE R (SL)", "partner": "제성", "gubun": "입고", "lot": 450, "bad": 2, "rate": 20.0, "detail": "전면 하단부 찍힘", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 24, "month": "3월", "date": "3/4", "product": "아이콘 프로", "part": "COVER TOP (BK)", "partner": "제성", "gubun": "입고", "lot": 350, "bad": 2, "rate": 20.0, "detail": "후면 전면부 탄화 자국", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 25, "month": "3월", "date": "3/4", "product": "아이콘 프로", "part": "COVER SIDE L (SL)", "partner": "제성", "gubun": "입고", "lot": 308, "bad": 2, "rate": 20.0, "detail": "후면부 찍힘", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 26, "month": "3월", "date": "3/4", "product": "아이콘 프로", "part": "COVER REAR (BK)", "partner": "제성", "gubun": "입고", "lot": 308, "bad": 1, "rate": 10.0, "detail": "이물", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 27, "month": "3월", "date": "3/4", "product": "아이콘 프로", "part": "COVER SIDE L (WT)", "partner": "제성", "gubun": "입고", "lot": 1440, "bad": 2, "rate": 20.0, "detail": "밀핀부 BURR", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 28, "month": "3월", "date": "3/4", "product": "아이콘 프로", "part": "COVER FRONT LOWER (BK)", "partner": "제성", "gubun": "입고", "lot": 302, "bad": 1, "rate": 10.0, "detail": "조립 불량 (틀어짐)", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 29, "month": "3월", "date": "3/4", "product": "아이콘 프로", "part": "TRAY ASSY (WT)", "partner": "제성", "gubun": "입고", "lot": 1200, "bad": 3, "rate": 30.0, "detail": "이물 불량", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 30, "month": "3월", "date": "3/4", "product": "얼음정수기  미니", "part": "COVER SIDE L (GR)", "partner": "제성", "gubun": "입고", "lot": 5, "bad": 1, "rate": 20.0, "detail": "백화 및 파손", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 31, "month": "3월", "date": "3/4", "product": "얼음정수기  미니", "part": "COVER SIDE R (GR)", "partner": "제성", "gubun": "입고", "lot": 5, "bad": 1, "rate": 20.0, "detail": "백화 및 파손", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 32, "month": "3월", "date": "3/4", "product": "얼음정수기  미니", "part": "COVER REAR (PK)", "partner": "제성", "gubun": "입고", "lot": 5, "bad": 1, "rate": 20.0, "detail": "라벨 누락", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 33, "month": "3월", "date": "3/4", "product": "얼음정수기  미니", "part": "TOP COVER (WT)", "partner": "제성", "gubun": "입고", "lot": 5, "bad": 4, "rate": 80.0, "detail": "안쪽면 오염", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 34, "month": "3월", "date": "3/4", "product": "얼음정수기  미니", "part": "COVER SIDE R (BG)", "partner": "제성", "gubun": "입고", "lot": 5, "bad": 1, "rate": 20.0, "detail": "라벨 부위 이물", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 35, "month": "3월", "date": "3/4", "product": "얼음정수기  미니", "part": "COVER TOP (BL)", "partner": "제성", "gubun": "입고", "lot": 5, "bad": 1, "rate": 20.0, "detail": "Burr", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 36, "month": "3월", "date": "3/4", "product": "의류청정기", "part": "DOOR INNER ASSY", "partner": "범진아이엔디", "gubun": "입고", "lot": 80, "bad": 5, "rate": 50.0, "detail": "찍힘 및 오염", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 37, "month": "3월", "date": "3/4", "product": "PWA-3400W", "part": "FILTER ASSY", "partner": "제이앤지", "gubun": "입고", "lot": 696, "bad": 3, "rate": 30.0, "detail": "오염 불량", "action": "입고 LOT 선별", "note": "입고 전 사전 조치 完"}, {"id": 38, "month": "3월", "date": "3/4", "product": "ESS", "part": "ES5P BUSBAR", "partner": "쓰리디테므", "gubun": "입고", "lot": 2201, "bad": 2, "rate": 20.0, "detail": "얼룩 및 스크래치", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 39, "month": "3월", "date": "3/5", "product": "아이콘2.0", "part": "온수탱크 아세이", "partner": "큐비에스", "gubun": "입고", "lot": 1024, "bad": 2, "rate": 20.0, "detail": "니쁠부 사출 불량 및 와이어 손상", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 40, "month": "3월", "date": "3/5", "product": "아이콘2.0", "part": "FRAME FILTER ASSY", "partner": "광명", "gubun": "입고", "lot": 5060, "bad": 3, "rate": 30.0, "detail": "사출 불량 및 외관 오염", "action": "사내재고 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 41, "month": "3월", "date": "3/5", "product": "아이콘 프로", "part": "프론트 아세이", "partner": "알비코리아", "gubun": "입고", "lot": 315, "bad": 2, "rate": 20.0, "detail": "스크래치", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 42, "month": "3월", "date": "3/5", "product": "아이콘2.0", "part": "TRAY ASSY (BL)", "partner": "제성", "gubun": "입고", "lot": 56, "bad": 1, "rate": 10.0, "detail": "비닐 내 이물", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 43, "month": "3월", "date": "3/5", "product": "아이콘2.0", "part": "TRAY ASSY (PK)", "partner": "제성", "gubun": "입고", "lot": 360, "bad": 1, "rate": 10.0, "detail": "비닐 내 이물", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 44, "month": "3월", "date": "3/5", "product": "3세대", "part": "LOUVER", "partner": "제이앤지", "gubun": "입고", "lot": 700, "bad": 2, "rate": 20.0, "detail": "이물 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 45, "month": "3월", "date": "3/5", "product": "3세대", "part": "DECO FRONT", "partner": "그린테크 솔루션", "gubun": "입고", "lot": 700, "bad": 2, "rate": 20.0, "detail": "치수 초과 (SPEC : 488.6 +0.2, -0.1 / 현물 : 488.96)", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 46, "month": "3월", "date": "3/6", "product": "아이콘 프로", "part": "COVER REAR (GR)", "partner": "제성", "gubun": "입고", "lot": 400, "bad": 2, "rate": 20.0, "detail": "오염 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 47, "month": "3월", "date": "3/6", "product": "아이콘2.0", "part": "히터-브라켓 아세이", "partner": "QBS", "gubun": "입고", "lot": 1200, "bad": 3, "rate": 20.0, "detail": "브라켓 사출 파손 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 48, "month": "3월", "date": "3/6", "product": "아이콘2.0", "part": "COVER SIDE L,R", "partner": "범진아이엔디", "gubun": "입고", "lot": 480, "bad": 2, "rate": 6.0, "detail": "외관 오염 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 49, "month": "3월", "date": "3/6", "product": "아이콘 프로", "part": "COVER FRONT LOWER", "partner": "제성", "gubun": "입고", "lot": 1512, "bad": 1, "rate": 10.0, "detail": "화상 주의 라벨 누락", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 50, "month": "3월", "date": "3/6", "product": "아이콘 프로", "part": "COVER FRONT LOWER", "partner": "제성", "gubun": "입고", "lot": 402, "bad": 4, "rate": 80.0, "detail": "사출 눌림 및 스크러치", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 51, "month": "3월", "date": "3/6", "product": "아이콘 프로", "part": "COVER TOP", "partner": "제성", "gubun": "입고", "lot": 417, "bad": 2, "rate": 20.0, "detail": "외관 치수 미달 불량 (SPEC : 330.6±0.4 → 현물 : 330.02~330.7)", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 52, "month": "3월", "date": "3/6", "product": "아이콘 프로", "part": "COVER SIDE R", "partner": "제성", "gubun": "입고", "lot": 1520, "bad": 1, "rate": 5.0, "detail": "에너지 라벨 부착 상태 불량", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 53, "month": "3월", "date": "3/9", "product": "아이콘2.0", "part": "DECO FRONT LOWER", "partner": "제성", "gubun": "입고", "lot": 960, "bad": 1, "rate": 5.0, "detail": "까짐 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 54, "month": "3월", "date": "3/9", "product": "아이콘 프로", "part": "COVER TOP", "partner": "제성", "gubun": "입고", "lot": 400, "bad": 2, "rate": 20.0, "detail": "사출 불량", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 55, "month": "3월", "date": "3/9", "product": "아이콘2.0", "part": "COVER SIDE L", "partner": "범진아이엔디", "gubun": "공정", "lot": 0, "bad": 0, "rate": 0, "detail": "Burr", "action": "사내재고 전수 사상 후 투입", "note": "1월 생산 LOT 에서 발생 / 3월 LOT 이상 없음"}, {"id": 56, "month": "3월", "date": "3/9", "product": "아이콘 프로", "part": "COVER SIDE R (SL)", "partner": "제성", "gubun": "입고", "lot": 400, "bad": 1, "rate": 5.0, "detail": "과사상 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 57, "month": "3월", "date": "3/10", "product": "아이콘2.0", "part": "POWER CORD ASSY", "partner": "엠케이", "gubun": "공정", "lot": 1920, "bad": 6, "rate": 0.3, "detail": "외관 오염 불량", "action": "사내재고 전수 선별", "note": "연속 2LOT 동일 불량으로 상주 검사 요청"}, {"id": 58, "month": "3월", "date": "3/10", "product": "아이콘2.0", "part": "COVER FRONT LOWER", "partner": "제성", "gubun": "공정", "lot": 900, "bad": 1, "rate": 0.1, "detail": "필름 누락 불량", "action": "사내재고 전수 선별", "note": "-"}, {"id": 59, "month": "3월", "date": "3/10", "product": "아이콘2.0", "part": "COVER TOP", "partner": "제성", "gubun": "공정", "lot": 400, "bad": 1, "rate": 0.2, "detail": "필름 누락 불량", "action": "사내재고 전수 선별", "note": "-"}, {"id": 60, "month": "3월", "date": "3/11", "product": "아이콘 프로", "part": "COVER REAR", "partner": "제성", "gubun": "입고", "lot": 972, "bad": 2, "rate": 10.0, "detail": "BURR 미제거 및 이물 불량", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 61, "month": "3월", "date": "3/11", "product": "아이콘 프로", "part": "COVER SIDE R", "partner": "제성", "gubun": "입고", "lot": 1000, "bad": 2, "rate": 10.0, "detail": "오염, 찍힘, 스크러치", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 62, "month": "3월", "date": "3/11", "product": "아이콘 프로", "part": "COVER FRONT LOWER", "partner": "제성", "gubun": "입고", "lot": 1056, "bad": 2, "rate": 10.0, "detail": "오염 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 63, "month": "3월", "date": "3/11", "product": "아이콘 프로", "part": "COVER TOP", "partner": "제성", "gubun": "입고", "lot": 1120, "bad": 3, "rate": 12.0, "detail": "모서리부 찍힘", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 64, "month": "3월", "date": "3/11", "product": "아이콘 프로", "part": "COVER SIDE L", "partner": "제성", "gubun": "입고", "lot": 1440, "bad": 2, "rate": 10.0, "detail": "스크러치 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 65, "month": "3월", "date": "3/11", "product": "아이콘 프로", "part": "COVER SIDE R (WT)", "partner": "제성", "gubun": "입고", "lot": 100, "bad": 2, "rate": 20.0, "detail": "모서리부 찍힘", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 66, "month": "3월", "date": "3/11", "product": "PWA-3400W", "part": "FILTER ASSY", "partner": "제이앤지", "gubun": "입고", "lot": 720, "bad": 2, "rate": 10.0, "detail": "Burr 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 67, "month": "3월", "date": "3/12", "product": "의류청정기", "part": "BODY SUB ASSY", "partner": "범진아이엔디", "gubun": "입고", "lot": 80, "bad": 4, "rate": 20.0, "detail": "오염, 이물, 박스 상태 불량", "action": "입고 LOT 선별 투입", "note": "재사용 및 파손 BOX 선별 조치 및 폐기 完"}, {"id": 68, "month": "3월", "date": "3/12", "product": "아이콘 프로", "part": "PBA 프론트 아세이 (WT)", "partner": "알비코리아", "gubun": "입고", "lot": 250, "bad": 4, "rate": 20.0, "detail": "하단부 찍힘", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 69, "month": "3월", "date": "3/12", "product": "아이콘 프로", "part": "PBA 프론트 아세이 (SL)", "partner": "알비코리아", "gubun": "입고", "lot": 440, "bad": 3, "rate": 16.0, "detail": "하단부 찍힘", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 70, "month": "3월", "date": "3/12", "product": "아이콘 프로", "part": "PBA 프론트 아세이 (BK)", "partner": "알비코리아", "gubun": "입고", "lot": 660, "bad": 2, "rate": 8.0, "detail": "찍힘", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 71, "month": "3월", "date": "3/12", "product": "아이콘 프로", "part": "COVER SIDE L (BK)", "partner": "제성", "gubun": "입고", "lot": 610, "bad": 25, "rate": 100.0, "detail": "백화", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 72, "month": "3월", "date": "3/12", "product": "아이콘 프로", "part": "COVER SIDE R (BK)", "partner": "제성", "gubun": "입고", "lot": 600, "bad": 2, "rate": 10.0, "detail": "스크래치 및 이물", "action": "입고 LOT 선별", "note": "입고 전 사전 조치 完"}, {"id": 73, "month": "3월", "date": "3/12", "product": "PGC-365RH", "part": "PIPE ASSY", "partner": "세원엠테크", "gubun": "입고", "lot": 500, "bad": 2, "rate": 10.0, "detail": "면취 불량", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 74, "month": "3월", "date": "3/13", "product": "아이콘2.0", "part": "히터-브라켓 아세이", "partner": "큐비에스", "gubun": "입고", "lot": 500, "bad": 3, "rate": 10.0, "detail": "부품내 이물 및 라벨 인쇄 불량", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 75, "month": "3월", "date": "3/13", "product": "아이콘2.0", "part": "탱크 냉수 아세이", "partner": "동인하이텍", "gubun": "입고", "lot": 1280, "bad": 1, "rate": 10.0, "detail": "냉각 핀 변형", "action": "입고 LOT 전수 선별", "note": "불량부품 수리 후 투입"}, {"id": 76, "month": "3월", "date": "3/13", "product": "의류청정기", "part": "DOOR INNER ASSY", "partner": "범진아이엔디", "gubun": "입고", "lot": 40, "bad": 1, "rate": 100.0, "detail": "오염 및 라벨 누락", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 77, "month": "3월", "date": "3/13", "product": "ESS", "part": "TERMINAL TO CONTACTOR", "partner": "쓰리디테크", "gubun": "입고", "lot": 2791, "bad": 3, "rate": 10.0, "detail": "오염 및 스크래치", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 78, "month": "3월", "date": "3/16", "product": "아이콘 프로", "part": "COVER SIDE L/R", "partner": "제성", "gubun": "입고", "lot": 460, "bad": 2, "rate": 10.0, "detail": "외관 찍힘 및 하단 눌림", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 79, "month": "3월", "date": "3/16", "product": "아이콘2.0", "part": "COVER REAR", "partner": "제이앤지", "gubun": "입고", "lot": 460, "bad": 3, "rate": 20.0, "detail": "오염 불량", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 80, "month": "3월", "date": "3/16", "product": "하이브리드  제습", "part": "DECO FRONT", "partner": "그린테크 솔루션", "gubun": "입고", "lot": 300, "bad": 2, "rate": 20.0, "detail": "오염 불량", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 81, "month": "3월", "date": "3/17", "product": "아이콘 프로", "part": "COVER SIDE R (BG)", "partner": "제성", "gubun": "입고", "lot": 600, "bad": 2, "rate": 20.0, "detail": "이물 오염", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 82, "month": "3월", "date": "3/17", "product": "아이콘2.0", "part": "COVER SIDE R (SL)", "partner": "범진아이엔디", "gubun": "입고", "lot": 1222, "bad": 1, "rate": 6.0, "detail": "이물 불량", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 83, "month": "3월", "date": "3/17", "product": "아이콘2.0", "part": "COVER TOP (SL)", "partner": "범진아이엔디", "gubun": "입고", "lot": 1600, "bad": 2, "rate": 13.0, "detail": "찍힘", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 84, "month": "3월", "date": "3/17", "product": "얼음정수기  미니", "part": "BASE TOTAL ASSY", "partner": "신우엠테크", "gubun": "입고", "lot": 50, "bad": 4, "rate": 40.0, "detail": "파워코드 오염 및 베이스 배면 오염", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 85, "month": "3월", "date": "3/17", "product": "얼음정수기  미니", "part": "브라켓 히터 아세이", "partner": "은성사업", "gubun": "입고", "lot": 50, "bad": 1, "rate": 10.0, "detail": "히팅부 내부 이물", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 86, "month": "3월", "date": "3/17", "product": "아이콘 프로", "part": "COVER REAR (BL)", "partner": "제성", "gubun": "입고", "lot": 264, "bad": 1, "rate": 10.0, "detail": "후면 중앙부 BURR", "action": "전수 사상 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 87, "month": "3월", "date": "3/17", "product": "아이콘 프로", "part": "COVER TOP (BL)", "partner": "제성", "gubun": "입고", "lot": 420, "bad": 1, "rate": 10.0, "detail": "측면 찍힘 및 스크러치", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 88, "month": "3월", "date": "3/17", "product": "3세대", "part": "CABINET FRONT", "partner": "범진아이엔디", "gubun": "입고", "lot": 300, "bad": 3, "rate": 30.0, "detail": "BURR 및 과사상", "action": "전수 사상 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 89, "month": "3월", "date": "3/17", "product": "3세대", "part": "BASE", "partner": "제이앤지", "gubun": "공정", "lot": 746, "bad": 3, "rate": 0, "detail": "BASE 후면부 휨에 대한 리어 조립 시 양쪽 들뜸 현상", "action": "사내재고 반출 및 26년 초도 신규 사출작업분 라인 투입 完", "note": "확인결과 25.09 협력사 생산분으로 장기 보관 부품으로 확인됨"}, {"id": 90, "month": "3월", "date": "3/18", "product": "아이콘 미니", "part": "BASE TOTAL ASSY", "partner": "신우엠테크", "gubun": "입고", "lot": 50, "bad": 3, "rate": 30.0, "detail": "파워코드 오염 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 91, "month": "3월", "date": "3/18", "product": "아이콘2.0", "part": "FRONT LOWER (SL)", "partner": "제성", "gubun": "입고", "lot": 1400, "bad": 2, "rate": 13.0, "detail": "이물 불량", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 92, "month": "3월", "date": "3/18", "product": "3세대", "part": "CABINET FRONT", "partner": "범진아이엔디", "gubun": "입고", "lot": 360, "bad": 6, "rate": 60.0, "detail": "BURR 및 과사상", "action": "입고 LOT 전수 사상", "note": "입고 전 사전 조치 完"}, {"id": 93, "month": "3월", "date": "3/18", "product": "하이브리드2", "part": "LOUVER VERTICAL", "partner": "그린테크 솔루션", "gubun": "입고", "lot": 620, "bad": 3, "rate": 15.0, "detail": "BURR, 오염, 흑점", "action": "입고 LOT 전수 반출", "note": "대책서 요청 完"}, {"id": 94, "month": "3월", "date": "3/18", "product": "3세대", "part": "LOUVER", "partner": "그린테크 솔루션", "gubun": "입고", "lot": 2000, "bad": 2, "rate": 10.0, "detail": "오염 및 흑점", "action": "입고 LOT 전수 반출", "note": "대책서 요청 完"}, {"id": 95, "month": "3월", "date": "3/18", "product": "창문형에어컨", "part": "캠핑용 REAR DUCT", "partner": "그린테크 솔루션", "gubun": "입고", "lot": 64, "bad": 3, "rate": 30.0, "detail": "쓸림, 흑점, 스크러치", "action": "입고 LOT 전수 반출", "note": "대책서 요청 完"}, {"id": 96, "month": "3월", "date": "3/18", "product": "창문형에어컨", "part": "캠핑용 자바라", "partner": "대한후렉시블", "gubun": "입고", "lot": 5, "bad": 1, "rate": 20.0, "detail": "주름부 구멍", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 97, "month": "3월", "date": "3/19", "product": "아이콘2.0", "part": "히터-브라켓 아세이", "partner": "QBS", "gubun": "공정", "lot": 2700, "bad": 7, "rate": 0.2, "detail": "SCREW 3개소 누락 불량", "action": "사내재고 전수 선별", "note": "수입검사 연속 부적합으로 인한 협력사 재작업시 누락 발생 추정"}, {"id": 98, "month": "3월", "date": "3/19", "product": "아이콘2.0", "part": "COVER TOP (WT)", "partner": "범진아이엔디", "gubun": "입고", "lot": 1882, "bad": 3, "rate": 10.0, "detail": "BURR 및 이물", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 99, "month": "3월", "date": "3/19", "product": "아이콘2.0", "part": "COVER SIDE L (WT)", "partner": "범진아이엔디", "gubun": "입고", "lot": 827, "bad": 3, "rate": 20.0, "detail": "BURR 사상 안됨", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 100, "month": "3월", "date": "3/19", "product": "아이콘2.0", "part": "COVER SIDE R (SL)", "partner": "범진아이엔디", "gubun": "입고", "lot": 1236, "bad": 1, "rate": 6.0, "detail": "스크래치", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 101, "month": "3월", "date": "3/19", "product": "4세대", "part": "CABINET REAR", "partner": "범진아이엔디", "gubun": "입고", "lot": 420, "bad": 2, "rate": 20.0, "detail": "Burr 사상 안됨", "action": "입고 LOT 전수 사상 진행", "note": "입고 전 사전 조치 完"}, {"id": 102, "month": "3월", "date": "2026-03-20 00:00:00", "product": "얼음정수기  미니", "part": "COVER-SIDE R", "partner": "제성", "gubun": "입고", "lot": 52, "bad": 2, "rate": 20.0, "detail": "오염 불량", "action": "입고 LOT 전수 세척 진행", "note": "입고 전 사전 조치 完"}, {"id": 103, "month": "3월", "date": "2026-03-20 00:00:00", "product": "아이콘2.0", "part": "COVER-FRONT ASS'Y", "partner": "에코엘이디", "gubun": "공정", "lot": 400, "bad": 5, "rate": 1.2, "detail": "휨 불량으로 인한 조립시 GAP 발생", "action": "입고 LOT 전수 선별", "note": "대책서 요청 完"}, {"id": 104, "month": "3월", "date": "2026-03-20 00:00:00", "product": "아이콘2.0", "part": "FILTER-COVER", "partner": "광명", "gubun": "입고", "lot": 960, "bad": 3, "rate": 30.0, "detail": "BURR 과사상 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 105, "month": "3월", "date": "2026-03-20 00:00:00", "product": "아이콘2.0", "part": "COVER-UPPER", "partner": "광명", "gubun": "입고", "lot": 1240, "bad": 10, "rate": 50.0, "detail": "BURR 미사상 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 106, "month": "3월", "date": "2026-03-23 00:00:00", "product": "얼음정수기  미니", "part": "COVER-REAR ASS'Y", "partner": "제성", "gubun": "입고", "lot": 61, "bad": 61, "rate": 100.0, "detail": "치수 부적합  (SPEC : 425.0 ± 0.5 → 현물 : 424.19 ~ 424.39)", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 107, "month": "3월", "date": "2026-03-23 00:00:00", "product": "얼음정수기  미니", "part": "TANK-MAIN ASS'Y", "partner": "태성", "gubun": "입고", "lot": 50, "bad": 1, "rate": 10.0, "detail": "니쁠부 사출 형상 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 108, "month": "3월", "date": "2026-03-23 00:00:00", "product": "아이콘2.0", "part": "COVER-SIDE L", "partner": "범진아이엔디", "gubun": "입고", "lot": 2827, "bad": 10, "rate": 10.0, "detail": "BURR 미사상, 오염불량 BURR 미제거 불량", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 109, "month": "3월", "date": "2026-03-23 00:00:00", "product": "4세대", "part": "CABINET REAR", "partner": "범진아이엔디", "gubun": "입고", "lot": 490, "bad": 8, "rate": 40.0, "detail": "오염 및 리브 변형 불량", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 110, "month": "3월", "date": "2026-03-23 00:00:00", "product": "가스쿡탑", "part": "BURNER CAP", "partner": "유진", "gubun": "입고", "lot": 3360, "bad": 8, "rate": 20.0, "detail": "이물 (티) 불량", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 111, "month": "3월", "date": "3/24", "product": "아이콘2.0", "part": "히터-브라켓 아세이", "partner": "QBS", "gubun": "입고", "lot": 1024, "bad": 12, "rate": 60.0, "detail": "WIRE 정형 불량", "action": "입고 LOT 전수 재작업", "note": "입고 전 사전 조치 完"}, {"id": 112, "month": "3월", "date": "3/24", "product": "아이콘2.0", "part": "COVER FRONT LOWER", "partner": "제성", "gubun": "입고", "lot": 2700, "bad": 4, "rate": 20.0, "detail": "외관 흑점 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 113, "month": "3월", "date": "3/24", "product": "얼음정수기  미니", "part": "사용설명서-아세이", "partner": "한성칼라", "gubun": "입고", "lot": 2500, "bad": 8, "rate": 40.0, "detail": "밸브 BURR 미제거 불량", "action": "입고 LOT 전수 사상 작업 후 재포장", "note": "입고 전 사전 조치 完"}, {"id": 114, "month": "3월", "date": "3/24", "product": "아이콘2.0", "part": "POWER CORD", "partner": "엠케이", "gubun": "공정", "lot": 1000, "bad": 1, "rate": 10.0, "detail": "BURR 미제거 불량", "action": "협력사 보유 재고 전수 BURR 사상 진행", "note": "대책서 요청 完"}, {"id": 115, "month": "3월", "date": "3/25", "product": "아이콘2.0", "part": "냉수-탱크 아세이", "partner": "신우엠테크", "gubun": "입고", "lot": 620, "bad": 33, "rate": 5.0, "detail": "이형제 미제거 불량, 니쁠부 발포 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 116, "month": "3월", "date": "3/25", "product": "아이콘2.0", "part": "COVER UPPER", "partner": "광명", "gubun": "입고", "lot": 3100, "bad": 10, "rate": 50.0, "detail": "외관 오염 및 BURR 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 117, "month": "3월", "date": "3/26", "product": "아이콘2.0", "part": "냉수-탱크 아세이", "partner": "동인하이텍", "gubun": "입고", "lot": 1144, "bad": 12, "rate": 60.0, "detail": "니쁠부 오염 및 까짐 불량", "action": "입고 LOT 전수 선별", "note": "협력사 누설 검사 과정에서 피팅 관리 미흡으로 인한  불량 발생 추정"}, {"id": 118, "month": "3월", "date": "3/26", "product": "아이콘2.0", "part": "히터-브라켓 아세이", "partner": "QBS", "gubun": "입고", "lot": 1024, "bad": 1, "rate": 5.0, "detail": "접지 와이어 체결 흔들림 불량", "action": "입고 LOT 전수 재작업", "note": "입고 전 사전 조치 完"}, {"id": 119, "month": "3월", "date": "3/26", "product": "아이콘2.0", "part": "COVER FRONT LOWER", "partner": "제성", "gubun": "입고", "lot": 1100, "bad": 1, "rate": 5.0, "detail": "이물 오염 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 120, "month": "3월", "date": "3/26", "product": "아이콘 프로", "part": "BASE ASSY", "partner": "제성", "gubun": "입고", "lot": 1140, "bad": 6, "rate": 30.0, "detail": "밀핀부 BURR 불량", "action": "입고 LOT 전수 사상후 투입", "note": "금형 관리 미흡 _  밀핀 마모에 의한 BURR 발생"}, {"id": 121, "month": "3월", "date": "3/27", "product": "ESS", "part": "Insulation side bottom", "partner": "범진아이엔디", "gubun": "입고", "lot": 5990, "bad": 3, "rate": 30.0, "detail": "후크부 burr", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 122, "month": "3월", "date": "3/27", "product": "ESS", "part": "Insulation middle bottom", "partner": "범진아이엔디", "gubun": "입고", "lot": 2976, "bad": 4, "rate": 40.0, "detail": "얼룩 및 스크래치", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 123, "month": "3월", "date": "3/27", "product": "아이콘2.0", "part": "COVER FRONT LOWER", "partner": "제성", "gubun": "입고", "lot": 2200, "bad": 4, "rate": 20.0, "detail": "파우셋 누락 불량", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 124, "month": "3월", "date": "3/30", "product": "창문형에어컨", "part": "Cabinet rear", "partner": "범진아이엔디", "gubun": "공정", "lot": 500, "bad": 1, "rate": 0.2, "detail": "BURR 사상 안됨", "action": "사내재고 전수 사상 작업", "note": "대책서 요청 完"}, {"id": 125, "month": "3월", "date": "3/30", "product": "ESS", "part": "Insulation side bottom", "partner": "범진아이엔디", "gubun": "입고", "lot": 5990, "bad": 5, "rate": 50.0, "detail": "후크부 burr 사상 안됨", "action": "전수 사상 작업", "note": "3/27 반출분 재불량"}, {"id": 126, "month": "3월", "date": "3/31", "product": "아이콘 프로", "part": "COVER FRONT LOWER (SL)", "partner": "제성", "gubun": "입고", "lot": 317, "bad": 2, "rate": 10.0, "detail": "스크래치 불량", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 127, "month": "3월", "date": "3/31", "product": "아이콘 프로", "part": "COVER SIDE L (SL)", "partner": "제성", "gubun": "입고", "lot": 300, "bad": 1, "rate": 5.0, "detail": "스크래치 불량", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 128, "month": "3월", "date": "3/31", "product": "아이콘 프로", "part": "COVER SIDE R (SL)", "partner": "제성", "gubun": "입고", "lot": 300, "bad": 1, "rate": 10.0, "detail": "스크래치 불량", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 129, "month": "3월", "date": "3/31", "product": "창문형에어컨", "part": "자바라", "partner": "대한후렉시블", "gubun": "입고", "lot": 6, "bad": 1, "rate": 16.0, "detail": "주름부 구멍", "action": "입고 LOT 반출", "note": "입고 전 사전 조치 完"}, {"id": 130, "month": "3월", "date": "3/31", "product": "가스쿡탑", "part": "그레이트", "partner": "이화범랑", "gubun": "입고", "lot": 150, "bad": 2, "rate": 20.0, "detail": "범랑 깨짐", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 131, "month": "3월", "date": "3/31", "product": "아이콘프로", "part": "COVER FRONT ASSY", "partner": "알비코리아", "gubun": "공정", "lot": 500, "bad": 1, "rate": 0.2, "detail": "LCD 출력 불량 화면 컬러 부분 왜곡 및 번짐", "action": "사내재고 전수 선별 후 투입", "note": "LCD 협력사 불량 발송 및  원인 검토 시간 소요됨"}, {"id": 132, "month": "3월", "date": "4/1", "product": "아이콘프로", "part": "COVER SIDE R (BG)", "partner": "제성", "gubun": "입고", "lot": 300, "bad": 1, "rate": 5.0, "detail": "찍힘", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 133, "month": "3월", "date": "4/1", "product": "아이콘프로", "part": "COVER SIDE L (BG)", "partner": "제성", "gubun": "입고", "lot": 300, "bad": 2, "rate": 10.0, "detail": "도장 벗겨짐 및 쓸림", "action": "입고 LOT 전수 선별 후 투입", "note": "차주부터 입회검사 진행 예정"}, {"id": 134, "month": "3월", "date": "4/1", "product": "아이콘프로", "part": "MAIN PBA", "partner": "티지코퍼레이션", "gubun": "공정", "lot": 600, "bad": 1, "rate": 0.2, "detail": "와이어 단자 역삽입 불량", "action": "사내재고 전수 선별", "note": "대책서 회신 完"}, {"id": 135, "month": "3월", "date": "4/1", "product": "창문형에어컨", "part": "ONE BOARD ASSY", "partner": "위너텍", "gubun": "입고", "lot": 720, "bad": 2, "rate": 20.0, "detail": "라이팅 단자 설삽입", "action": "입고 LOT 전수 선별 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 136, "month": "3월", "date": "4/2", "product": "창문형에어컨", "part": "FRAME BODY FRONT", "partner": "범진아이엔디", "gubun": "입고", "lot": 135, "bad": 2, "rate": 20.0, "detail": "이물 및 피팅부 BURR", "action": "입고 LOT 반출 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 137, "month": "3월", "date": "4/2", "product": "창문형에어컨", "part": "DECO BODY FRONT", "partner": "범진아이엔디", "gubun": "입고", "lot": 540, "bad": 3, "rate": 30.0, "detail": "홀부 이물 및 광택 불량", "action": "입고 LOT 반출 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 138, "month": "3월", "date": "4/2", "product": "창문형에어컨 (듀얼)", "part": "CABINET FRONT ASSY", "partner": "범진아이엔디", "gubun": "입고", "lot": 300, "bad": 3, "rate": 30.0, "detail": "게이트부 사상 불량", "action": "입고 LOT 반출 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 139, "month": "3월", "date": "4/2", "product": "아이콘프로", "part": "히터-브라켓 아세이", "partner": "은성산업", "gubun": "공정", "lot": 1300, "bad": 2, "rate": 0.1, "detail": "접지 WIRE 치수 불량 및 단자 미체결", "action": "재고 전수 재검사", "note": "-"}, {"id": 140, "month": "3월", "date": "4/2", "product": "아이콘프로", "part": "하네스-부하연결", "partner": "대성전자", "gubun": "공정", "lot": 200, "bad": 1, "rate": 0.5, "detail": "하우징 후크부 파손", "action": "사내재고 전수 반출 후 재검사", "note": "-"}, {"id": 141, "month": "3월", "date": "4/2", "product": "창문형에어컨", "part": "PBA-INVERTER ONE  BOARD ASSY", "partner": "위너텍", "gubun": "공정", "lot": 960, "bad": 1, "rate": 0.1, "detail": "E2 Error", "action": "사내재고 전수 선별 후 투입", "note": "검토 결과 R117 냉땜 불량"}, {"id": 142, "month": "3월", "date": "4/2", "product": "창문형에어컨", "part": "POWER CORD ASSY", "partner": "통일전자공업", "gubun": "입고", "lot": 196, "bad": 1, "rate": 10.0, "detail": "하우징 핀 빠짐 불량", "action": "전수 선별 후 투입", "note": "입고 전 사전 조치 完"}], "4월": [{"id": 1, "month": "4월", "date": "4/6", "product": "얼음정수기 미니", "part": "COVER FRONT ASSY", "partner": "삼운전자", "gubun": "입고", "lot": 468, "bad": 2, "rate": 20.0, "detail": "흑점 및 이물", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 2, "month": "4월", "date": "4/6", "product": "듀얼 창-에", "part": "CABINET FRONT ASSY", "partner": "범진아이엔디", "gubun": "입고", "lot": 300, "bad": 2, "rate": 20.0, "detail": "오염 불량 및 자석 쇳가루", "action": "입고 LOT 전수 세척 후 투입", "note": "입고 전 사전 조치 完"}, {"id": 3, "month": "4월", "date": "4/6", "product": "창-에 6세대", "part": "FRAME BODY FRONT", "partner": "범진아이엔디", "gubun": "입고", "lot": 135, "bad": 1, "rate": 10.0, "detail": "이물 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}, {"id": 4, "month": "4월", "date": "4/7", "product": "아이콘2.0", "part": "COVER FRONT LOWER", "partner": "그린테크솔루션", "gubun": "입고", "lot": 1344, "bad": 10, "rate": 100.0, "detail": "외관 burr 미사상", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 5, "month": "4월", "date": "4/7", "product": "창-에 6세대", "part": "SUPPORT MID", "partner": "그린테크솔루션", "gubun": "입고", "lot": 300, "bad": 3, "rate": 30.0, "detail": "이물 및 오염 불량", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 6, "month": "4월", "date": "4/7", "product": "가스쿡탑", "part": "HS BURNER BODY", "partner": "월드메탈", "gubun": "입고", "lot": 1000, "bad": 3, "rate": 15.0, "detail": "나사산 깨짐 및 이물", "action": "입고 LOT 전수 반출", "note": "입고 전 사전 조치 完"}, {"id": 7, "month": "4월", "date": "4/9", "product": "창-에 6세대", "part": "FILTER", "partner": "제이앤지", "gubun": "입고", "lot": 1600, "bad": 3, "rate": 15.0, "detail": "오염 불량", "action": "입고 LOT 전수 선별", "note": "입고 전 사전 조치 完"}]}
+;
+
+// ═══ 상태 ═══
+Chart.defaults.color = '#64748B';
+Chart.defaults.font.family = "'Noto Sans KR', sans-serif";
+Chart.defaults.scale.grid.color = '#E2E8F0';
+
+let DATA = JSON.parse(JSON.stringify(EXCEL_DATA));
+let curMonth = '전체';
+let filtered = getAllRows();
+let pending = null;
+let barC, donutC, trendC, gubunC, pBarC, pRateC;
+
+function getAllRows() {
+  return Object.values(DATA).flat();
+}
+function getMonthRows(m) {
+  return m === '전체' ? getAllRows() : (DATA[m] || []);
+}
+
+// ═══ Page switch ═══
+function gotoPage(p, el) {
+  document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(x => x.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  el.classList.add('active');
+  const titles = { 'monthly-view': '수입 불량 현황', 'list': '전체 검수 리스트', 'partner': '협력사 분석' };
+  document.getElementById('page-title').textContent = titles[p] || p;
+  if (p === 'monthly-view') renderMonthlyView();
+  else if (p === 'list') { populateListFilters(); renderTable(); }
+  else if (p === 'partner') renderPartner();
+}
+
+// ═══ Month switch ═══
+function changeMonth(m, el) {
+  curMonth = m;
+  document.querySelectorAll('.mt').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderMonthlyView();
+}
+
+// ═══ Monthly View ═══
+function renderMonthlyView() {
+  const rows = getMonthRows(curMonth);
+  renderKPI(rows);
+  renderCharts(rows);
+}
+
+function renderKPI(rows) {
+  const cnt = rows.length;
+  const lot = rows.reduce((a, b) => a + b.lot, 0);
+  const bad = rows.reduce((a, b) => a + b.bad, 0);
+  const avgRate = cnt ? (rows.reduce((a, b) => a + b.rate, 0) / cnt).toFixed(1) : 0;
+  const highRisk = rows.filter(r => r.rate >= 50).length;
+  document.getElementById('kpi-grid').innerHTML = `
+    <div class="kpi" style="--accent:var(--blue);--accent-l:var(--blue-l)">
+      <div class="kpi-icon" style="background:var(--blue-l)"><svg fill="none" stroke="var(--blue)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
+      <div class="kpi-lbl">발생 건수</div>
+      <div class="kpi-val">${cnt}<span class="kpi-unit">건</span></div>
+      <div class="kpi-sub">${curMonth} 누적</div>
+    </div>
+    <div class="kpi" style="--accent:var(--purple);--accent-l:var(--purple-l)">
+      <div class="kpi-icon" style="background:var(--purple-l)"><svg fill="none" stroke="var(--purple)" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+      <div class="kpi-lbl">LOT 총합</div>
+      <div class="kpi-val">${lot.toLocaleString()}<span class="kpi-unit">개</span></div>
+      <div class="kpi-sub">총 불량 ${bad.toLocaleString()}개</div>
+    </div>
+    <div class="kpi" style="--accent:var(--amber);--accent-l:var(--amber-l)">
+      <div class="kpi-icon" style="background:var(--amber-l)"><svg fill="none" stroke="var(--amber)" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+      <div class="kpi-lbl">평균 불량율</div>
+      <div class="kpi-val">${avgRate}<span class="kpi-unit">%</span></div>
+      <div class="kpi-sub">샘플 기준 평균</div>
+    </div>
+    <div class="kpi" style="--accent:var(--red);--accent-l:var(--red-l)">
+      <div class="kpi-icon" style="background:var(--red-l)"><svg fill="none" stroke="var(--red)" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div class="kpi-lbl">고위험 (≥50%)</div>
+      <div class="kpi-val">${highRisk}<span class="kpi-unit">건</span></div>
+      <div class="kpi-sub">불량율 50% 이상</div>
+    </div>`;
+}
+
+function renderCharts(rows) {
+  // Bar: 협력사별
+  const pd = {};
+  rows.forEach(d => pd[d.partner] = (pd[d.partner] || 0) + 1);
+  const sorted = Object.entries(pd).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  const barLabels = sorted.map(x => x[0]);
+  const barVals = sorted.map(x => x[1]);
+
+  document.getElementById('bar-sub').textContent = curMonth === '전체' ? '1~4월 전체 기간' : curMonth + ' 기준';
+
+  if (barC) barC.destroy();
+  const cb = document.getElementById('barChart').getContext('2d');
+  barC = new Chart(cb, {
+    type: 'bar',
+    data: {
+      labels: barLabels,
+      datasets: [{
+        data: barVals,
+        backgroundColor: barVals.map((v, i) => i === 0 ? 'rgba(220,38,38,.7)' : i < 3 ? 'rgba(217,119,6,.6)' : 'rgba(37,99,235,.5)'),
+        borderRadius: 5, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { borderDash: [4, 4] }, ticks: { font: { size: 11 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+
+  // Donut: 불량 키워드
+  const kw = { '외관오염': 0, 'Burr/사상': 0, '치수/형상': 0, '이물': 0, '스크래치': 0, '기타': 0 };
+  rows.forEach(r => {
+    const d = r.detail.toLowerCase();
+    if (d.includes('오염') || d.includes('흑점') || d.includes('얼룩')) kw['외관오염']++;
+    else if (d.includes('burr') || d.includes('사상') || d.includes('버')) kw['Burr/사상']++;
+    else if (d.includes('치수') || d.includes('spec') || d.includes('미성형') || d.includes('수축')) kw['치수/형상']++;
+    else if (d.includes('이물')) kw['이물']++;
+    else if (d.includes('스크래치') || d.includes('찍힘') || d.includes('쓸림')) kw['스크래치']++;
+    else kw['기타']++;
+  });
+  const kwFiltered = Object.entries(kw).filter(x => x[1] > 0);
+
+  if (donutC) donutC.destroy();
+  const cd = document.getElementById('donutChart').getContext('2d');
+  donutC = new Chart(cd, {
+    type: 'doughnut',
+    data: {
+      labels: kwFiltered.map(x => x[0]),
+      datasets: [{
+        data: kwFiltered.map(x => x[1]),
+        backgroundColor: ['#2563EB', '#DC2626', '#D97706', '#059669', '#7C3AED', '#94A3B8'],
+        borderWidth: 3, borderColor: '#fff', hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 11 } } } }
+    }
+  });
+
+  // Trend
+  const monthCounts = ['1월', '2월', '3월', '4월'].map(m => (DATA[m] || []).length);
+  if (trendC) trendC.destroy();
+  const ct = document.getElementById('trendChart').getContext('2d');
+  const tg = ct.createLinearGradient(0, 0, 0, 200);
+  tg.addColorStop(0, 'rgba(37,99,235,.15)');
+  tg.addColorStop(1, 'rgba(37,99,235,0)');
+  trendC = new Chart(ct, {
+    type: 'line',
+    data: {
+      labels: ['1월', '2월', '3월', '4월'],
+      datasets: [{
+        data: monthCounts,
+        borderColor: '#2563EB', backgroundColor: tg,
+        fill: true, tension: .4, pointRadius: 5,
+        pointBackgroundColor: '#2563EB', borderWidth: 2.5,
+        pointHoverRadius: 7
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { borderDash: [4, 4] } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Gubun pie
+  const gd = { '입고': 0, '공정': 0, '출하': 0, '기타': 0 };
+  rows.forEach(r => { gd[r.gubun] = (gd[r.gubun] || 0) + 1; });
+  if (gubunC) gubunC.destroy();
+  const cg = document.getElementById('gubunChart').getContext('2d');
+  gubunC = new Chart(cg, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(gd).filter(k => gd[k] > 0),
+      datasets: [{
+        data: Object.values(gd).filter(v => v > 0),
+        backgroundColor: ['#2563EB', '#D97706', '#059669', '#94A3B8'],
+        borderWidth: 3, borderColor: '#fff', hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 11 } } } }
+    }
+  });
+}
+
+// ═══ List Page ═══
+function populateListFilters() {
+  const all = getAllRows();
+  const months = [...new Set(all.map(r => r.month))];
+  const prods = [...new Set(all.map(r => r.product))].sort();
+  const parts = [...new Set(all.map(r => r.partner))].sort();
+  document.getElementById('fl-month').innerHTML = '<option value="">전체 월</option>' + months.map(m => `<option>${m}</option>`).join('');
+  document.getElementById('fl-product').innerHTML = '<option value="">전체 제품</option>' + prods.map(p => `<option>${p}</option>`).join('');
+  document.getElementById('fl-partner').innerHTML = '<option value="">전체 협력사</option>' + parts.map(p => `<option>${p}</option>`).join('');
+}
+
+function runFilter() {
+  const m = document.getElementById('fl-month').value;
+  const p = document.getElementById('fl-product').value;
+  const v = document.getElementById('fl-partner').value;
+  const g = document.getElementById('fl-gubun').value;
+  const q = document.getElementById('fl-search').value.toLowerCase();
+  filtered = getAllRows().filter(r =>
+    (!m || r.month === m) && (!p || r.product === p) &&
+    (!v || r.partner === v) && (!g || r.gubun === g) &&
+    (!q || r.detail.toLowerCase().includes(q) || r.part.toLowerCase().includes(q))
+  );
+  renderTable();
+}
+
+function resetFilters() {
+  ['fl-month', 'fl-product', 'fl-partner', 'fl-gubun'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fl-search').value = '';
+  filtered = getAllRows();
+  renderTable();
+}
+
+function renderTable() {
+  document.getElementById('row-count').textContent = `${filtered.length}건`;
+  document.getElementById('fcount').textContent = `${filtered.length} / ${getAllRows().length}건`;
+  document.getElementById('tbl-body').innerHTML = filtered.map((d, i) => {
+    const r = Math.min(d.rate, 100);
+    const rateClass = r >= 50 ? 'rate-high' : r >= 20 ? 'rate-mid' : 'rate-low';
+    const col = r >= 50 ? 'var(--red)' : r >= 20 ? 'var(--amber)' : 'var(--green)';
+    const actionBadge = d.action.includes('반출') ? 'b-red' : d.action.includes('재작업') ? 'b-purple' : d.action.includes('선별') ? 'b-amber' : 'b-blue';
+    return `<tr>
+      <td class="mono" style="color:var(--txt-dim);font-size:11px">${i+1}</td>
+      <td><span class="badge b-teal">${d.month}</span></td>
+      <td class="mono">${d.date}</td>
+      <td class="fw6">${d.product}</td>
+      <td style="font-size:11px;color:var(--txt-sub);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.part}">${d.part}</td>
+      <td style="white-space:nowrap">${d.partner}</td>
+      <td><span class="gtag gtag-${d.gubun}">${d.gubun}</span></td>
+      <td class="mono">${d.lot.toLocaleString()}</td>
+      <td class="mono">${d.bad}</td>
+      <td>
+        <div class="prog">
+          <div class="prog-bar"><div class="prog-fill" style="width:${r}%;background:${col}"></div></div>
+          <span class="${rateClass} mono" style="font-size:11px">${d.rate}%</span>
+        </div>
+      </td>
+      <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.detail}">${d.detail}</td>
+      <td><span class="badge ${actionBadge}" style="font-size:9px">${d.action.length > 14 ? d.action.slice(0,14)+'…' : d.action}</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--txt-dim)">검색 결과가 없습니다</td></tr>';
+}
+
+// ═══ Partner Page ═══
+function renderPartner() {
+  const all = getAllRows();
+  const pm = {};
+  all.forEach(r => {
+    if (!pm[r.partner]) pm[r.partner] = { cnt: 0, lot: 0, bad: 0, rateSum: 0, details: [] };
+    pm[r.partner].cnt++;
+    pm[r.partner].lot += r.lot;
+    pm[r.partner].bad += r.bad;
+    pm[r.partner].rateSum += r.rate;
+    pm[r.partner].details.push(r.detail);
+  });
+
+  const sorted = Object.entries(pm).sort((a, b) => b[1].cnt - a[1].cnt);
+  const top15 = sorted.slice(0, 15);
+
+  if (pBarC) pBarC.destroy();
+  const cpb = document.getElementById('partnerBarChart').getContext('2d');
+  pBarC = new Chart(cpb, {
+    type: 'bar',
+    data: {
+      labels: top15.map(x => x[0]),
+      datasets: [{
+        label: '불량 건수',
+        data: top15.map(x => x[1].cnt),
+        backgroundColor: top15.map((x, i) => i < 3 ? 'rgba(220,38,38,.7)' : i < 7 ? 'rgba(217,119,6,.6)' : 'rgba(37,99,235,.5)'),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, grid: { borderDash: [4, 4] } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } }
+    }
+  });
+
+  const top12rate = sorted.slice(0, 12);
+  const avgRates = top12rate.map(([, v]) => +(v.rateSum / v.cnt).toFixed(1));
+
+  if (pRateC) pRateC.destroy();
+  const cpr = document.getElementById('partnerRateChart').getContext('2d');
+  pRateC = new Chart(cpr, {
+    type: 'bar',
+    data: {
+      labels: top12rate.map(x => x[0]),
+      datasets: [{
+        label: '평균 불량율(%)',
+        data: avgRates,
+        backgroundColor: avgRates.map(v => v >= 40 ? 'rgba(220,38,38,.7)' : v >= 20 ? 'rgba(217,119,6,.6)' : 'rgba(5,150,105,.5)'),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, grid: { borderDash: [4, 4] } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } }
+    }
+  });
+
+  // Partner table
+  document.getElementById('partner-tbl').innerHTML = sorted.map(([name, v]) => {
+    const avgRate = (v.rateSum / v.cnt).toFixed(1);
+    const score = Math.max(0, Math.round(100 - avgRate * 1.0 - v.cnt * 0.3));
+    const [grade, gc] = score >= 85 ? ['A', 'b-green'] : score >= 70 ? ['B', 'b-blue'] : score >= 55 ? ['C', 'b-amber'] : ['D', 'b-red'];
+    const topDetail = v.details.reduce((acc, d) => {
+      const kw = d.substring(0, 6);
+      acc[kw] = (acc[kw] || 0) + 1;
+      return acc;
+    }, {});
+    const topKw = Object.entries(topDetail).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
+    return `<tr>
+      <td class="fw6">${name}</td>
+      <td class="mono">${v.cnt}</td>
+      <td class="mono">${v.lot.toLocaleString()}</td>
+      <td class="mono">${v.bad}</td>
+      <td class="mono ${avgRate >= 40 ? 'rate-high' : avgRate >= 20 ? 'rate-mid' : 'rate-low'}">${avgRate}%</td>
+      <td style="font-size:11px;color:var(--txt-sub)">${topKw}...</td>
+      <td><span class="badge ${gc}">${grade} Grade</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══ Modal & Upload ═══
+function openModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); resetModal(); }
+function resetModal() {
+  pending = null;
+  document.getElementById('steps').style.display = 'none';
+  document.getElementById('preview').style.display = 'none';
+  document.getElementById('umsg').textContent = '';
+  document.getElementById('apply-btn').disabled = true;
+  document.getElementById('dico').textContent = '📂';
+  document.getElementById('dtxt').textContent = '파일을 드래그하거나 클릭하여 선택';
+  ['s1','s2','s3','s4'].forEach(id => {
+    const el = document.getElementById(id);
+    el.className = 'step';
+    el.querySelector('.step-ico').textContent = '○';
+  });
+}
+
+const dz = document.getElementById('dz');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+
+function handleFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['xlsx','xls','csv'].includes(ext)) { setMsg('❌ .xlsx .xls .csv 만 지원합니다','var(--red)'); return; }
+  document.getElementById('steps').style.display = 'block';
+  document.getElementById('dico').textContent = '⏳';
+  document.getElementById('dtxt').textContent = `"${file.name}" 처리 중...`;
+  stepDoing('s1');
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    stepDone('s1'); stepDoing('s2');
+    try {
+      let allResults = [];
+
+      if (ext === 'csv') {
+        // CSV: 헤더 자동 감지 후 파싱
+        const rows = parseCSVRaw(e.target.result);
+        const parsed = parseSheetRows(rows, "업로드");
+        allResults = parsed;
+      } else {
+        // Excel: 모든 시트 처리
+        const wb = XLSX.read(e.target.result, { type:'array', cellDates:true });
+        for (const sheetName of wb.SheetNames) {
+          const ws = wb.Sheets[sheetName];
+          // 원시 2D 배열로 읽기 (header:1 = 행을 배열로)
+          const rawRows = XLSX.utils.sheet_to_json(ws, { header:1, defval:null, blankrows:false });
+          const parsed = parseSheetRows(rawRows, sheetName);
+          allResults.push(...parsed);
+        }
+      }
+
+      stepDone('s2'); stepDoing('s3');
+      if (!allResults.length) throw new Error('파싱된 데이터가 없습니다. 헤더 행을 확인하세요.');
+      stepDone('s3'); stepDoing('s4');
+
+      const maxId = Math.max(0, ...getAllRows().map(r => r.id || 0));
+      pending = allResults.map((r, i) => ({ ...r, id: maxId + i + 1 }));
+
+      stepDone('s4');
+
+      // 미리보기
+      const keys = ['date','product','part','partner','gubun','lot','bad','rate','detail'];
+      const labels = ['날짜','제품명','부품명','협력사','구분','LOT','불량수','불량율','불량내용'];
+      document.getElementById('ph').innerHTML = '<tr>' + labels.map(k=>`<th>${k}</th>`).join('') + '</tr>';
+      document.getElementById('pb').innerHTML = pending.slice(0,5).map(r =>
+        '<tr>' + keys.map(k => `<td>${r[k] ?? ''}</td>`).join('') + '</tr>'
+      ).join('');
+      document.getElementById('preview').style.display = 'block';
+      setMsg(`✅ ${pending.length}행 파싱 완료! "데이터 반영하기"를 눌러 적용하세요.`, 'var(--green)');
+      document.getElementById('apply-btn').disabled = false;
+      document.getElementById('dico').textContent = '✅';
+      document.getElementById('dtxt').textContent = `${file.name} (${pending.length}행)`;
+    } catch(err) {
+      stepFail(); setMsg(`❌ ${err.message}`, 'var(--red)');
+      document.getElementById('dico').textContent = '❌';
+      document.getElementById('dtxt').textContent = '처리 실패 — 다시 시도하세요';
+      console.error(err);
+    }
+  };
+  ext === 'csv' ? reader.readAsText(file, 'UTF-8') : reader.readAsArrayBuffer(file);
+}
+
+// ─── 핵심 파서: 원본 엑셀 구조(제목행·헤더행·서브헤더행·데이터) 완벽 처리 ───
+function parseSheetRows(rawRows, sheetName) {
+  if (!rawRows || rawRows.length < 3) return [];
+
+  // 1) 헤더행 탐지: '날짜' 또는 'no.' 포함한 행
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(rawRows.length, 6); i++) {
+    const s = (rawRows[i]||[]).map(c=>String(c||'').toLowerCase()).join(' ');
+    if (s.includes('날짜') || s.includes('no.') || s.includes('date')) { headerIdx = i; break; }
+  }
+  if (headerIdx < 0) headerIdx = 0;
+
+  // 2) 서브헤더 스킵: 헤더 바로 다음 행이 No.값 없고 '입고'/'공정' 포함하면 서브헤더
+  let dataStart = headerIdx + 1;
+  const subRow = rawRows[dataStart] || [];
+  if ((subRow[0] === null || subRow[0] === undefined) &&
+      subRow.some(c => c === '입고' || c === '공정' || c === '출하' || c === '출하/시장')) {
+    dataStart++;
+  }
+
+  // 3) 헤더에서 컬럼 인덱스 추출
+  const h = (rawRows[headerIdx]||[]).map(c => String(c||'').replace(/[\r\n]/g,' ').trim().toLowerCase());
+  const ci = {
+    date:    h.findIndex(v => v === '날짜' || v === 'date'),
+    product: h.findIndex(v => v === '제품명' || v === 'product'),
+    part:    h.findIndex(v => v === '부품명' || v === 'part'),
+    partner: h.findIndex(v => v === '협력사' || v === 'partner'),
+    lot:     h.findIndex(v => v.includes('lot')),
+    rate:    h.findIndex(v => v === '불량율' || v === '불량률' || v === 'rate'),
+    detail:  h.findIndex(v => v.includes('불량내용') || v === 'detail'),
+    action:  h.findIndex(v => v.includes('조치') || v === 'action'),
+  };
+
+  // 구분: 열5=입고●, 6=공정●, 7=출하● (원본 파일 고정 구조)
+  const GUBUN_MAP = { 5:'입고', 6:'공정', 7:'출하' };
+
+  const results = [];
+  for (let i = dataStart; i < rawRows.length; i++) {
+    const row = rawRows[i] || [];
+    if (row[0] === null || row[0] === undefined) continue;
+    const noNum = parseInt(row[0]);
+    if (isNaN(noNum)) continue;
+
+    const safeStr = idx => (idx >= 0 && row[idx] != null) ? String(row[idx]).replace(/[\r\n]/g,' ').trim() : '';
+    const safeNum = idx => { if (idx < 0 || row[idx] == null) return 0; const n = parseFloat(String(row[idx]).replace(/[^0-9.]/g,'')); return isNaN(n) ? 0 : n; };
+
+    // 구분 판단 (● 기호 위치)
+    let gubun = '-';
+    for (const [col, g] of Object.entries(GUBUN_MAP)) {
+      if (row[col] === '●') { gubun = g; break; }
+    }
+    if (gubun === '-') {
+      const gv = safeStr(5);
+      if (['입고','공정','출하'].includes(gv)) gubun = gv;
+    }
+
+    // 불량수: col9(입고) + col10(공정)
+    const bad = (parseInt(row[9]) || 0) + (parseInt(row[10]) || 0);
+
+    // 불량율 파싱
+    let rate = 0;
+    if (ci.rate >= 0 && row[ci.rate] != null) {
+      const rv = String(row[ci.rate]);
+      const m = rv.match(/[\d.]+/);
+      rate = m ? parseFloat(m[0]) : 0;
+      if (rate > 0 && rate < 1 && !rv.includes('%')) rate = parseFloat((rate * 100).toFixed(2));
+    }
+
+    const product = safeStr(ci.product);
+    const partner = safeStr(ci.partner);
+    const lot = safeNum(ci.lot);
+    if (!product || !partner || lot === 0) continue;
+
+    results.push({
+      id: noNum, month: sheetName || '업로드',
+      date: safeStr(ci.date), product, part: safeStr(ci.part),
+      partner, gubun, lot, bad, rate,
+      detail: safeStr(ci.detail), action: safeStr(ci.action), note: '',
+    });
+  }
+  return results;
+}
+
+// ─── CSV 원시 파서 ───
+function parseCSVRaw(txt) {
+  const lines = txt.split('\n').map(l => l.replace(/\r$/,''));
+  return lines.map(line => {
+    const cells = []; let cur = ''; let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cells.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    cells.push(cur.trim());
+    return cells;
+  }).filter(r => r.some(c => c));
+}
+
+function applyUpload() {
+  if (!pending || !pending.length) return;
+  if (!DATA['업로드']) DATA['업로드'] = [];
+  DATA['업로드'].push(...pending);
+  filtered = getAllRows();
+  closeModal();
+  toast(`✅ ${pending.length}건 추가 반영 완료!`);
+  pending = null;
+  renderMonthlyView();
+}
+
+
+
+function stepDoing(id){const el=document.getElementById(id);el.className='step doing';el.querySelector('.step-ico').textContent='↻';}
+function stepDone(id) {const el=document.getElementById(id);el.className='step done';el.querySelector('.step-ico').textContent='✓';}
+function stepFail()   {['s1','s2','s3','s4'].forEach(id=>{const el=document.getElementById(id);if(el.className.includes('doing')){el.className='step fail';el.querySelector('.step-ico').textContent='✗';}});}
+function setMsg(msg,color){const el=document.getElementById('umsg');el.textContent=msg;el.style.color=color;}
+
+function toast(msg,isErr=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast'+(isErr?' error':'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+function doExportCSV() {
+  const rows = filtered.length ? filtered : getAllRows();
+  let csv = '\uFEFF월,날짜,제품명,부품명,협력사,구분,LOT수량,불량수,불량율,불량내용,조치내용\n';
+  rows.forEach(d => { csv += `${d.month},${d.date},${d.product},"${d.part}",${d.partner},${d.gubun},${d.lot},${d.bad},${d.rate}%,"${d.detail}","${d.action}"\n`; });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download = `QC_불량현황_${new Date().toLocaleDateString('ko-KR').replace(/\. /g,'').replace('.','')}.csv`;
+  a.click();
+  toast('CSV 저장 완료!');
+}
+
+// ═══ Init ═══
+filtered = getAllRows();
+renderMonthlyView();
+</script>
+</body>
+</html>
