@@ -1,0 +1,1988 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수입검사 통합 관리 시스템 · PASECO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f4f1;
+  --surface: #ffffff;
+  --surface2: #f8f7f4;
+  --border: rgba(0,0,0,0.09);
+  --border2: rgba(0,0,0,0.16);
+  --text: #1a1a18;
+  --text2: #6b6b67;
+  --text3: #a0a09c;
+  --blue: #1a6ef5;
+  --blue-bg: #eef4ff;
+  --blue-text: #1045b0;
+  --green: #1a9e5a;
+  --green-bg: #e8f8ef;
+  --green-text: #0f6b3c;
+  --amber: #c97a10;
+  --amber-bg: #fef4e3;
+  --amber-text: #8a520a;
+  --red: #d93b3b;
+  --red-bg: #fdeaea;
+  --red-text: #951f1f;
+  --gray-bg: #f0efec;
+  --gray-text: #555552;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --sidebar-w: 210px;
+  --topbar-h: 52px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+/* ── Layout ── */
+.app { display: flex; height: 100vh; overflow: hidden; }
+.sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction:column; flex-shrink: 0; overflow-y: auto; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar { height: var(--topbar-h); background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.content { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+/* ── Sidebar ── */
+.logo {
+  background: linear-gradient(160deg,#0f2a5c 0%,#1a6ef5 100%);
+  padding: 20px 18px 18px;
+  border-bottom: none;
+  position: relative;
+  overflow: hidden;
+}
+.logo::after {
+  content: '';
+  position: absolute;
+  right: -24px; bottom: -24px;
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+}
+.logo::before {
+  content: '';
+  position: absolute;
+  right: 10px; top: -30px;
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+}
+.logo-img-wrap {
+  margin-bottom: 10px;
+  position: relative; z-index: 1;
+}
+.logo-img-wrap img {
+  height: 26px;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+.logo-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.18);
+  margin: 10px 0 10px;
+  position: relative; z-index: 1;
+}
+.logo-sys {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.95);
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  position: relative; z-index: 1;
+}
+.logo-sys-en {
+  font-size: 9.5px;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  position: relative; z-index: 1;
+}
+.nav-group { padding: 10px 0 4px; }
+.nav-group-label {
+  font-size: 9.5px; font-weight: 700; color: var(--text3);
+  padding: 0 16px 4px; letter-spacing: .08em; text-transform: uppercase;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 16px; cursor: pointer; font-size: 13px;
+  color: var(--text2); border-left: 2px solid transparent;
+  transition: all .15s;
+}
+.nav-item:hover { background: var(--bg); color: var(--text); }
+.nav-item.active {
+  background: var(--blue-bg); color: var(--blue-text);
+  border-left-color: var(--blue); font-weight: 600;
+}
+.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; opacity: .7; }
+.nav-item.active svg { opacity: 1; }
+.nav-module { margin-top: 4px; border-top: 1px solid var(--border); }
+
+/* ── Topbar ── */
+.page-title { font-size: 15px; font-weight: 600; }
+.tbar-r { display: flex; gap: 8px; align-items: center; }
+.tbar-date { font-size: 12px; color: var(--text3); font-family: 'IBM Plex Mono', monospace; }
+
+/* ── Buttons ── */
+.btn { padding: 7px 14px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; font-size: 13px; font-weight: 500; font-family: 'Noto Sans KR', sans-serif; transition: background .15s; }
+.btn:hover { background: var(--bg); }
+.btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+.btn-primary:hover { background: #1458d4; border-color: #1458d4; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* ── Section ── */
+.sec { display: none; }
+.sec.on { display: contents; }
+
+/* ── Cards ── */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-title { font-size: 14px; font-weight: 600; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.row3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+.row4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+
+/* ── Stat cards ── */
+.stat { background: var(--surface2); border-radius: var(--radius); padding: 14px 16px; border: 1px solid var(--border); }
+.stat-lbl { font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+.stat-val { font-size: 24px; font-weight: 600; line-height: 1; }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* ── Tables ── */
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border2); font-weight: 600; font-size: 12px; color: var(--text2); white-space: nowrap; }
+td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--bg); }
+
+/* ── Badges ── */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.b-green { background: var(--green-bg); color: var(--green-text); }
+.b-amber { background: var(--amber-bg); color: var(--amber-text); }
+.b-red { background: var(--red-bg); color: var(--red-text); }
+.b-blue { background: var(--blue-bg); color: var(--blue-text); }
+.b-gray { background: var(--gray-bg); color: var(--gray-text); }
+.tag { display: inline-block; padding: 2px 7px; border-radius: var(--radius); font-size: 11px; background: var(--gray-bg); color: var(--gray-text); border: 1px solid var(--border); }
+
+/* ── Form ── */
+.fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fg { display: flex; flex-direction: column; gap: 4px; }
+.fg.full { grid-column: 1/-1; }
+.fg label { font-size: 12px; font-weight: 600; color: var(--text2); }
+.fg input, .fg select, .fg textarea { padding: 8px 10px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 13px; font-family: 'Noto Sans KR', sans-serif; outline: none; transition: border-color .15s; }
+.fg input:focus, .fg select:focus, .fg textarea:focus { border-color: var(--blue); }
+.fg textarea { resize: vertical; min-height: 70px; }
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.filter-row input, .filter-row select { padding: 7px 10px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 13px; font-family: 'Noto Sans KR', sans-serif; outline: none; }
+.filter-row input { min-width: 200px; }
+
+/* ── Progress ── */
+.pbar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.pfill { height: 100%; border-radius: 3px; }
+
+/* ── Timeline ── */
+.tl-row { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.tl-row:last-child { border-bottom: none; }
+.tl-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.tl-body { flex: 1; }
+.tl-title { font-size: 13px; font-weight: 500; }
+.tl-time { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ── Avatar ── */
+.avatar { border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; flex-shrink: 0; }
+
+/* ── Vendor row ── */
+.vrow { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-radius: var(--radius); cursor: pointer; transition: background .12s; }
+.vrow:hover { background: var(--bg); }
+.vname { font-weight: 500; font-size: 13px; }
+.vmeta { font-size: 11px; color: var(--text2); margin-top: 1px; }
+
+/* ── Modal ── */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 1000; align-items: center; justify-content: center; }
+.overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border2); padding: 24px; width: 560px; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.18); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.modal-title { font-size: 16px; font-weight: 600; }
+.x-btn { background: none; border: none; cursor: pointer; color: var(--text2); font-size: 22px; line-height: 1; padding: 0 4px; }
+.x-btn:hover { color: var(--text); }
+
+/* ── Tabs ── */
+.tab-row { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.tab { padding: 8px 16px; cursor: pointer; font-size: 13px; color: var(--text2); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; }
+.tab:hover { color: var(--text); }
+.tab.on { color: var(--blue); border-bottom-color: var(--blue); font-weight: 500; }
+.tab-sec { display: none; }
+.tab-sec.on { display: block; }
+
+/* ── KPI grid ── */
+.kpi3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 14px; }
+.kitem { text-align: center; padding: 12px; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); }
+.knum { font-size: 20px; font-weight: 600; margin-bottom: 3px; }
+.klbl { font-size: 11px; color: var(--text2); }
+
+/* ── Cert row ── */
+.cert-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.cert-row:last-child { border-bottom: none; }
+.cert-name { font-size: 13px; font-weight: 500; }
+.cert-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* ── Bar chart ── */
+.bar-chart { display: flex; align-items: flex-end; gap: 10px; height: 110px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; }
+.bar-num { font-size: 12px; font-weight: 600; }
+.bar-track { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+.bar-fill { width: 100%; border-radius: 3px 3px 0 0; transition: height .3s; }
+.bar-lbl { font-size: 11px; color: var(--text2); }
+
+/* ── Divider ── */
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* ── Module badge ── */
+.module-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+
+/* ── Scroll ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ══ DASHBOARD HERO ══ */
+.dash-hero {
+  background: linear-gradient(135deg, #1a3a6e 0%, #1a6ef5 60%, #2d8af0 100%);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.dash-hero::before {
+  content: '';
+  position: absolute;
+  right: -40px; top: -40px;
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+}
+.dash-hero::after {
+  content: '';
+  position: absolute;
+  right: 60px; bottom: -60px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+}
+.hero-left { position: relative; z-index: 1; }
+.hero-logo { height: 28px; margin-bottom: 10px; filter: brightness(0) invert(1); }
+.hero-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; }
+.hero-sub { font-size: 13px; opacity: 0.75; margin-top: 4px; }
+.hero-right { display: flex; gap: 16px; position: relative; z-index: 1; }
+.hero-kpi { background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.18); border-radius: var(--radius); padding: 14px 20px; text-align: center; min-width: 110px; }
+.hero-kpi-val { font-size: 26px; font-weight: 700; line-height: 1; }
+.hero-kpi-lbl { font-size: 11px; opacity: 0.8; margin-top: 4px; }
+.hero-kpi-sub { font-size: 11px; margin-top: 3px; opacity: 0.65; }
+
+/* ══ WEEK COMPARE CARDS ══ */
+.wc-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+.wc-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+.wc-label { font-size: 12px; color: var(--text2); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.wc-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.wc-icon svg { width: 14px; height: 14px; }
+.wc-nums { display: flex; align-items: flex-end; gap: 10px; }
+.wc-this { font-size: 28px; font-weight: 700; line-height: 1; }
+.wc-prev { font-size: 12px; color: var(--text3); margin-bottom: 2px; }
+.wc-delta { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 600; padding: 2px 7px; border-radius: 20px; margin-top: 8px; }
+.delta-up { background: var(--green-bg); color: var(--green-text); }
+.delta-dn { background: var(--red-bg); color: var(--red-text); }
+.delta-eq { background: var(--gray-bg); color: var(--gray-text); }
+
+/* ══ MINI WEEK BAR ══ */
+.week-bars { display: flex; align-items: flex-end; gap: 4px; height: 40px; margin-top: 10px; }
+.wb { flex: 1; border-radius: 3px 3px 0 0; min-height: 4px; transition: opacity .2s; }
+.wb:hover { opacity: .75; }
+
+/* ══ NC TABLE CARD ══ */
+.nc-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.nc-row:last-child { border-bottom: none; }
+.nc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.nc-body { flex: 1; }
+.nc-name { font-size: 13px; font-weight: 500; }
+.nc-meta { font-size: 11px; color: var(--text3); margin-top: 1px; }
+
+/* ══ DONUT ══ */
+.donut-wrap { display: flex; align-items: center; gap: 20px; }
+.donut-legend { display: flex; flex-direction: column; gap: 7px; }
+.dl-item { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.dl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dl-pct { font-weight: 600; margin-left: auto; padding-left: 12px; }
+
+/* ══ EXCEL UPLOAD ══ */
+.xl-banner { background: linear-gradient(135deg,#1a3a6e 0%,#1a6ef5 100%); border-radius: var(--radius-lg); padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; color: #fff; }
+.xl-left { display: flex; align-items: center; gap: 14px; flex: 1; }
+.xl-icon { width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.xl-title { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+.xl-sub { font-size: 12px; opacity: 0.8; line-height: 1.5; }
+.xl-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.xl-actions .btn { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); color: #fff; }
+.xl-actions .btn:hover { background: rgba(255,255,255,0.25); }
+.xl-actions .btn-primary { background: #fff; color: var(--blue-text); border-color: #fff; }
+.xl-actions .btn-primary:hover { background: #eef4ff; }
+.xl-result-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-radius: var(--radius); font-size: 13px; font-weight: 500; }
+.xl-result-ok  { background: var(--green-bg); color: var(--green-text); border: 1px solid #b6e8cc; }
+.xl-result-err { background: var(--red-bg);   color: var(--red-text);   border: 1px solid #f5b8b8; }
+.xl-result-warn{ background: var(--amber-bg); color: var(--amber-text); border: 1px solid #f9d89a; }
+/* drop zone highlight */
+.xl-drop-active { outline: 2px dashed var(--blue); outline-offset: -2px; }
+/* sort arrow */
+.sort-arrow { font-size: 10px; color: var(--text3); margin-left: 2px; }
+.sort-arrow.asc  { color: var(--blue); }
+.sort-arrow.desc { color: var(--blue); }
+/* progress bar upload */
+.xl-prog-wrap { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+.xl-prog-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .3s; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+<!-- ══════════════════ SIDEBAR ══════════════════ -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-img-wrap">
+      <img src="data:image/jpeg;base64,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" alt="PASECO">
+    </div>
+    <div class="logo-divider"></div>
+    <div class="logo-sys">수입검사 통합 관리 시스템</div>
+    <div class="logo-sys-en">Incoming Quality Control</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">수입검사</div>
+    <div class="nav-item active" onclick="nav('iqc-dash',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      현황 요약
+    </div>
+    <div class="nav-item" onclick="nav('incoming',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 12h12"/></svg>
+      입고 검사
+    </div>
+    <div class="nav-item" onclick="nav('nonconf',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 11v.5"/></svg>
+      부적합 관리
+    </div>
+    <div class="nav-item" onclick="nav('caplan',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h10"/><circle cx="13" cy="12" r="2"/></svg>
+      대책서
+    </div>
+    <div class="nav-item" onclick="nav('improve',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12L8 4l5 8H3z"/></svg>
+      개선 제안
+    </div>
+    <div class="nav-item" onclick="nav('quality',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5l3.5-.5z"/></svg>
+      품질 개선
+    </div>
+    <div class="nav-item" onclick="nav('change',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h10l-3 3 3 3H2V4z"/><path d="M14 8H6"/></svg>
+      변경점 관리
+    </div>
+  </div>
+
+  <div class="nav-group nav-module">
+    <div class="nav-group-label">협력사 관리</div>
+    <div class="nav-item" onclick="nav('sup-dash',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      협력사 현황
+    </div>
+    <div class="nav-item" onclick="nav('sup-list',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg>
+      협력사 목록
+    </div>
+    <div class="nav-item" onclick="nav('sup-audit',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8l3 3 5-5"/><circle cx="8" cy="8" r="6"/></svg>
+      등록·심사
+    </div>
+    <div class="nav-item" onclick="nav('sup-eval',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v2M8 12v2M2 8h2M12 8h2"/><circle cx="8" cy="8" r="4"/></svg>
+      정기 평가
+    </div>
+    <div class="nav-item" onclick="nav('sup-cert',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M5 7h6M5 10h4"/></svg>
+      인증·계약
+    </div>
+    <div class="nav-item" onclick="nav('sup-txn',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12l3-4 3 2 3-6 3 2"/></svg>
+      거래 실적
+    </div>
+    <div class="nav-item" onclick="nav('sup-req',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 11v.5"/></svg>
+      개선 요청
+    </div>
+    <div class="nav-item" onclick="nav('sup-comm',this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h12v8H9l-3 2v-2H2z"/></svg>
+      커뮤니케이션
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ MAIN ══════════════════ -->
+<div class="main">
+<div class="topbar">
+  <div class="page-title" id="ptitle">수입검사 현황 요약</div>
+  <div class="tbar-r">
+    <span class="tbar-date" id="today-date"></span>
+    <button class="btn btn-primary" id="reg-btn" onclick="openRegModal()">+ 신규 등록</button>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ════ 수입검사 현황 ════ -->
+<div class="sec on" id="sec-iqc-dash">
+
+  <!-- HERO -->
+  <div class="dash-hero">
+    <div class="hero-left">
+      <img src="data:image/jpeg;base64,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" alt="PASECO" class="hero-logo">
+      <div class="hero-title">수입검사 통합 관리 시스템</div>
+      <div class="hero-sub">Incoming Quality Control · 2026년 4월 기준</div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-kpi">
+        <div class="hero-kpi-val">124</div>
+        <div class="hero-kpi-lbl">이번달 입고</div>
+        <div class="hero-kpi-sub">전월 대비 +8건</div>
+      </div>
+      <div class="hero-kpi">
+        <div class="hero-kpi-val" style="color:#7ee8a2">94.3%</div>
+        <div class="hero-kpi-lbl">합격률</div>
+        <div class="hero-kpi-sub">목표 95%</div>
+      </div>
+      <div class="hero-kpi">
+        <div class="hero-kpi-val" style="color:#ffb3b3">7건</div>
+        <div class="hero-kpi-lbl">미결 부적합</div>
+        <div class="hero-kpi-sub">기한 초과 2건</div>
+      </div>
+      <div class="hero-kpi">
+        <div class="hero-kpi-val" style="color:#ffd97d">32개</div>
+        <div class="hero-kpi-lbl">등록 협력사</div>
+        <div class="hero-kpi-sub">A등급 14개사</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 전주 대비 입고·부적합 현황 -->
+  <div class="wc-grid">
+    <!-- 이번주 입고 -->
+    <div class="wc-card">
+      <div class="wc-label">
+        <div class="wc-icon" style="background:var(--blue-bg)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="var(--blue)" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 12h12"/></svg>
+        </div>
+        이번주 입고건수
+      </div>
+      <div class="wc-nums">
+        <div class="wc-this" style="color:var(--blue)">34</div>
+        <div class="wc-prev">전주 29건</div>
+      </div>
+      <div class="week-bars">
+        <div class="wb" style="height:55%;background:var(--border2)"></div>
+        <div class="wb" style="height:72%;background:var(--border2)"></div>
+        <div class="wb" style="height:62%;background:var(--border2)"></div>
+        <div class="wb" style="height:80%;background:var(--border2)"></div>
+        <div class="wb" style="height:100%;background:var(--blue)"></div>
+      </div>
+      <span class="wc-delta delta-up">▲ +5건 +17.2%</span>
+    </div>
+    <!-- 이번주 합격 -->
+    <div class="wc-card">
+      <div class="wc-label">
+        <div class="wc-icon" style="background:var(--green-bg)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="var(--green)" stroke-width="1.5"><path d="M3 8l4 4 6-6"/></svg>
+        </div>
+        이번주 합격건수
+      </div>
+      <div class="wc-nums">
+        <div class="wc-this" style="color:var(--green)">31</div>
+        <div class="wc-prev">전주 27건</div>
+      </div>
+      <div class="week-bars">
+        <div class="wb" style="height:50%;background:var(--border2)"></div>
+        <div class="wb" style="height:70%;background:var(--border2)"></div>
+        <div class="wb" style="height:58%;background:var(--border2)"></div>
+        <div class="wb" style="height:78%;background:var(--border2)"></div>
+        <div class="wb" style="height:100%;background:var(--green)"></div>
+      </div>
+      <span class="wc-delta delta-up">▲ +4건 합격률 91.2%</span>
+    </div>
+    <!-- 이번주 부적합 -->
+    <div class="wc-card">
+      <div class="wc-label">
+        <div class="wc-icon" style="background:var(--red-bg)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="var(--red)" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v4M8 11v.5"/></svg>
+        </div>
+        이번주 부적합 발생
+      </div>
+      <div class="wc-nums">
+        <div class="wc-this" style="color:var(--red)">3</div>
+        <div class="wc-prev">전주 5건</div>
+      </div>
+      <div class="week-bars">
+        <div class="wb" style="height:100%;background:var(--border2)"></div>
+        <div class="wb" style="height:80%;background:var(--border2)"></div>
+        <div class="wb" style="height:90%;background:var(--border2)"></div>
+        <div class="wb" style="height:100%;background:var(--border2)"></div>
+        <div class="wb" style="height:60%;background:var(--red)"></div>
+      </div>
+      <span class="wc-delta delta-dn">▼ -2건 전주 대비 개선</span>
+    </div>
+    <!-- 대책서 미제출 -->
+    <div class="wc-card">
+      <div class="wc-label">
+        <div class="wc-icon" style="background:var(--amber-bg)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="var(--amber)" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h10"/><circle cx="13" cy="12" r="2"/></svg>
+        </div>
+        대책서 미제출
+      </div>
+      <div class="wc-nums">
+        <div class="wc-this" style="color:var(--amber)">3</div>
+        <div class="wc-prev">전주 4건</div>
+      </div>
+      <div class="week-bars">
+        <div class="wb" style="height:75%;background:var(--border2)"></div>
+        <div class="wb" style="height:100%;background:var(--border2)"></div>
+        <div class="wb" style="height:90%;background:var(--border2)"></div>
+        <div class="wb" style="height:100%;background:var(--border2)"></div>
+        <div class="wb" style="height:75%;background:var(--amber)"></div>
+      </div>
+      <span class="wc-delta delta-dn">▼ -1건 처리 진행중</span>
+    </div>
+  </div>
+
+  <!-- 부적합 현황 + 입고 추이 -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">이번주 부적합 현황</div>
+        <span class="badge b-red">미처리 3건</span>
+      </div>
+      <div class="nc-row">
+        <div class="nc-dot" style="background:var(--red)"></div>
+        <div class="nc-body"><div class="nc-name">삼성전자 · PCB-A102 치수불량</div><div class="nc-meta">발생 04.07 · 처리기한 04.08 · 심각</div></div>
+        <span class="badge b-red">미처리</span>
+      </div>
+      <div class="nc-row">
+        <div class="nc-dot" style="background:var(--amber)"></div>
+        <div class="nc-body"><div class="nc-name">LG이노텍 · LED-M305 외관불량</div><div class="nc-meta">발생 04.05 · 처리기한 04.12 · 경미</div></div>
+        <span class="badge b-amber">대책서접수</span>
+      </div>
+      <div class="nc-row">
+        <div class="nc-dot" style="background:var(--blue)"></div>
+        <div class="nc-body"><div class="nc-name">현대모비스 · CON-7780 기능불량</div><div class="nc-meta">발생 04.03 · 처리기한 04.10 · 심각</div></div>
+        <span class="badge b-blue">개선중</span>
+      </div>
+      <div class="nc-row">
+        <div class="nc-dot" style="background:var(--green)"></div>
+        <div class="nc-body"><div class="nc-name">코오롱 · HOU-A010 도장불량</div><div class="nc-meta">발생 03.28 · 완료 04.05</div></div>
+        <span class="badge b-green">완료</span>
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:16px">
+        <div style="font-size:12px;color:var(--text2)">전주 대비 부적합 발생: <strong style="color:var(--green)">▼ 2건 감소</strong></div>
+        <div style="font-size:12px;color:var(--text2)">누계 처리율: <strong style="color:var(--blue)">73.2%</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">주차별 입고 vs 부적합 추이</div>
+        <span style="font-size:12px;color:var(--text2)">최근 5주</span>
+      </div>
+      <!-- 주차별 바 차트 -->
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span style="width:40px;color:var(--text2);text-align:right;flex-shrink:0">3주전</span>
+          <div style="flex:1;display:flex;gap:3px;align-items:center">
+            <div style="height:18px;border-radius:3px;background:var(--blue);width:62%;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:11px;font-weight:600">26건</div>
+          </div>
+          <div style="flex:1;display:flex;gap:3px;align-items:center">
+            <div style="height:18px;border-radius:3px;background:var(--red-bg);border:1px solid var(--red);width:80%;display:flex;align-items:center;padding:0 6px;color:var(--red-text);font-size:11px;font-weight:600">5건</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span style="width:40px;color:var(--text2);text-align:right;flex-shrink:0">2주전</span>
+          <div style="flex:1;display:flex;gap:3px;align-items:center">
+            <div style="height:18px;border-radius:3px;background:var(--blue);width:70%;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:11px;font-weight:600">29건</div>
+          </div>
+          <div style="flex:1;display:flex;gap:3px;align-items:center">
+            <div style="height:18px;border-radius:3px;background:var(--red-bg);border:1px solid var(--red);width:80%;display:flex;align-items:center;padding:0 6px;color:var(--red-text);font-size:11px;font-weight:600">5건</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span style="width:40px;color:var(--text2);text-align:right;flex-shrink:0">지지난주</span>
+          <div style="flex:1;display:flex;gap:3px;align-items:center">
+            <div style="height:18px;border-radius:3px;background:var(--blue);width:57%;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:11px;font-weight:600">24건</div>
+          </div>
+          <div style="flex:1;display:flex;gap:3px;align-items:center">
+            <div style="height:18px;border-radius:3px;background:var(--amber-bg);border:1px solid var(--amber);width:64%;display:flex;align-items:center;padding:0 6px;color:var(--amber-text);font-size:11px;font-weight:600">4건</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span style="width:40px;color:var(--text2);text-align:right;flex-shrink:0">지난주</span>
+          <div style="flex:1;display:flex;gap:3px;align-items:center">
+            <div style="height:18px;border-radius:3px;background:var(--blue);width:69%;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:11px;font-weight:600">29건</div>
+          </div>
+          <div style="flex:1;display:flex;gap:3px;align-items:center">
+            <div style="height:18px;border-radius:3px;background:var(--amber-bg);border:1px solid var(--amber);width:80%;display:flex;align-items:center;padding:0 6px;color:var(--amber-text);font-size:11px;font-weight:600">5건</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
+          <span style="width:40px;color:var(--text2);text-align:right;flex-shrink:0;font-weight:600;color:var(--text)">이번주</span>
+          <div style="flex:1;display:flex;gap:3px;align-items:center">
+            <div style="height:22px;border-radius:3px;background:var(--blue);width:81%;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:11px;font-weight:700">34건 ▲</div>
+          </div>
+          <div style="flex:1;display:flex;gap:3px;align-items:center">
+            <div style="height:22px;border-radius:3px;background:var(--green-bg);border:1px solid var(--green);width:48%;display:flex;align-items:center;padding:0 6px;color:var(--green-text);font-size:11px;font-weight:700">3건 ▼</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:5px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:var(--blue)"></div>입고건수</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:var(--red)"></div>부적합</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 진행중 업무 + 알림 -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">진행중인 업무</div></div>
+      <div class="tl-row"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-body"><div class="tl-title">LG이노텍 대책서 접수 완료</div><div class="tl-time">2026.04.07 09:30</div></div><span class="badge b-green">완료</span></div>
+      <div class="tl-row"><div class="tl-dot" style="background:var(--blue)"></div><div class="tl-body"><div class="tl-title">삼성전자 PCB-A102 대책서 요청 발송</div><div class="tl-time">2026.04.07 11:00</div></div><span class="badge b-blue">진행</span></div>
+      <div class="tl-row"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-body"><div class="tl-title">한국전자 변경점 통보 검토 필요</div><div class="tl-time">만료 D-2</div></div><span class="badge b-amber">긴급</span></div>
+      <div class="tl-row"><div class="tl-dot" style="background:var(--border2)"></div><div class="tl-body"><div class="tl-title">4월 정기 업체 평가 예정</div><div class="tl-time">2026.04.15</div></div><span class="badge b-gray">예정</span></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">이번주 입고 합격률</div><span style="font-size:12px;color:var(--text2)">34건 중 31건 합격</span></div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:32px;padding:12px 0">
+        <div style="position:relative;width:100px;height:100px">
+          <svg viewBox="0 0 100 100" style="width:100%;height:100%;transform:rotate(-90deg)">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" stroke-width="12"/>
+            <circle cx="50" cy="50" r="40" fill="none" stroke="var(--green)" stroke-width="12" stroke-dasharray="251.2" stroke-dashoffset="14.4" stroke-linecap="round"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="font-size:18px;font-weight:700;color:var(--green)">91.2%</div>
+            <div style="font-size:10px;color:var(--text3)">합격률</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:50%;background:var(--green)"></div>
+            <span style="font-size:13px">합격</span>
+            <strong style="font-size:16px;margin-left:6px">31건</strong>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:50%;background:var(--blue)"></div>
+            <span style="font-size:13px">조건부</span>
+            <strong style="font-size:16px;margin-left:6px">1건</strong>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:50%;background:var(--red)"></div>
+            <span style="font-size:13px">불합격</span>
+            <strong style="font-size:16px;margin-left:6px">2건</strong>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:50%;background:var(--amber)"></div>
+            <span style="font-size:13px">검사중</span>
+            <strong style="font-size:16px;margin-left:6px">1건</strong>
+          </div>
+        </div>
+      </div>
+      <div style="background:var(--blue-bg);border-radius:var(--radius);padding:10px 14px;font-size:12px;color:var(--blue-text);margin-top:4px">
+        전주 합격률 93.1% 대비 <strong>▼ 1.9%p</strong> 하락 — 삼성전자 PCB 불량 영향
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ════ 입고검사 ════ -->
+<div class="sec" id="sec-incoming">
+  <div class="card">
+    <div class="card-head"><div class="card-title">입고 검사 목록</div></div>
+    <div class="filter-row">
+      <input type="text" placeholder="품번 / 품명 검색">
+      <select><option>전체 업체</option><option>삼성전자</option><option>LG이노텍</option><option>현대모비스</option></select>
+      <select><option>전체 결과</option><option>합격</option><option>불합격</option><option>조건부합격</option><option>검사중</option></select>
+      <select><option>이번달</option><option>지난달</option><option>최근3개월</option></select>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>검사번호</th><th>입고일</th><th>업체명</th><th>품번</th><th>품명</th><th>입고수량</th><th>검사수량</th><th>불량수</th><th>결과</th><th>검사자</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IQC-2604-001</td><td>04.01</td><td>삼성전자</td><td>PCB-A102</td><td>제어기판</td><td>500</td><td>50</td><td>3</td><td><span class="badge b-red">불합격</span></td><td>김검사</td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IQC-2604-002</td><td>04.02</td><td>LG이노텍</td><td>LED-M305</td><td>LED모듈</td><td>1000</td><td>80</td><td>2</td><td><span class="badge b-blue">조건부</span></td><td>이품질</td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IQC-2604-003</td><td>04.03</td><td>현대모비스</td><td>CON-7780</td><td>커넥터</td><td>2000</td><td>100</td><td>0</td><td><span class="badge b-green">합격</span></td><td>박수입</td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IQC-2604-004</td><td>04.04</td><td>코오롱</td><td>HOU-A010</td><td>하우징</td><td>300</td><td>30</td><td>1</td><td><span class="badge b-green">합격</span></td><td>김검사</td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IQC-2604-005</td><td>04.05</td><td>한국전자</td><td>RES-0402</td><td>저항</td><td>5000</td><td>200</td><td>0</td><td><span class="badge b-green">합격</span></td><td>이품질</td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IQC-2604-006</td><td>04.07</td><td>삼성전자</td><td>CAP-1206</td><td>커패시터</td><td>3000</td><td>120</td><td>—</td><td><span class="badge b-amber">검사중</span></td><td>박수입</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════ 부적합 ════ -->
+<div class="sec" id="sec-nonconf">
+  <div class="card">
+    <div class="card-head"><div class="card-title">부적합 관리</div></div>
+    <div class="filter-row">
+      <select><option>전체 상태</option><option>미처리</option><option>대책서접수</option><option>개선중</option><option>완료</option></select>
+      <select><option>전체 유형</option><option>치수불량</option><option>외관불량</option><option>기능불량</option><option>도장불량</option></select>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>부적합번호</th><th>발생일</th><th>업체</th><th>품번</th><th>불량유형</th><th>불량수량</th><th>심각도</th><th>처리기한</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">NC-2604-001</td><td>04.01</td><td>삼성전자</td><td>PCB-A102</td><td>치수불량</td><td>3</td><td><span class="badge b-red">심각</span></td><td>04.08</td><td><span class="badge b-red">미처리</span></td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">NC-2604-002</td><td>04.02</td><td>LG이노텍</td><td>LED-M305</td><td>외관불량</td><td>2</td><td><span class="badge b-amber">경미</span></td><td>04.12</td><td><span class="badge b-amber">대책서접수</span></td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">NC-2604-003</td><td>04.03</td><td>현대모비스</td><td>CON-7780</td><td>기능불량</td><td>5</td><td><span class="badge b-red">심각</span></td><td>04.10</td><td><span class="badge b-blue">개선중</span></td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">NC-2603-012</td><td>03.28</td><td>코오롱</td><td>HOU-A010</td><td>도장불량</td><td>1</td><td><span class="badge b-gray">보통</span></td><td>04.07</td><td><span class="badge b-green">완료</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════ 대책서 ════ -->
+<div class="sec" id="sec-caplan">
+  <div class="row2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">대책서 현황</div></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>대책서번호</th><th>업체</th><th>부적합</th><th>접수일</th><th>완료예정</th><th>상태</th></tr></thead>
+        <tbody>
+          <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">CA-2604-002</td><td>LG이노텍</td><td>NC-2604-002</td><td>04.05</td><td>04.19</td><td><span class="badge b-blue">검토중</span></td></tr>
+          <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">CA-2604-003</td><td>현대모비스</td><td>NC-2604-003</td><td>04.06</td><td>04.20</td><td><span class="badge b-amber">승인대기</span></td></tr>
+          <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">CA-2603-012</td><td>코오롱</td><td>NC-2603-012</td><td>03.30</td><td>04.06</td><td><span class="badge b-green">승인완료</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">대책서 작성</div></div>
+      <div class="fgrid">
+        <div class="fg"><label>관련 부적합번호</label><select><option>NC-2604-001</option><option>NC-2604-002</option></select></div>
+        <div class="fg"><label>접수일</label><input type="date" value="2026-04-07"></div>
+        <div class="fg full"><label>현상 파악</label><textarea placeholder="불량 현상을 구체적으로 기술..."></textarea></div>
+        <div class="fg full"><label>원인 분석 (5-Why)</label><textarea placeholder="근본 원인 분석..."></textarea></div>
+        <div class="fg full"><label>시정 조치</label><textarea placeholder="즉각적 시정 조치 내용..."></textarea></div>
+        <div class="fg full"><label>재발 방지 대책</label><textarea placeholder="재발 방지를 위한 항구 대책..."></textarea></div>
+        <div class="fg"><label>완료 예정일</label><input type="date"></div>
+        <div class="fg"><label>담당자</label><input type="text" placeholder="담당자명"></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn">임시저장</button>
+        <button class="btn btn-primary">제출</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 개선제안 ════ -->
+<div class="sec" id="sec-improve">
+  <div class="card">
+    <div class="card-head"><div class="card-title">개선 제안 목록</div></div>
+    <div class="filter-row">
+      <select><option>전체 분류</option><option>공정개선</option><option>설계변경</option><option>검사방법</option><option>관리방법</option></select>
+      <select><option>전체 상태</option><option>제안</option><option>검토중</option><option>승인</option><option>완료</option></select>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>번호</th><th>제안일</th><th>제안자</th><th>분류</th><th>제목</th><th>기대효과</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IP-2604-001</td><td>04.03</td><td>김검사</td><td><span class="tag">검사방법</span></td><td>외관검사 기준서 개정</td><td>불량 검출율 향상</td><td><span class="badge b-blue">검토중</span></td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IP-2603-015</td><td>03.20</td><td>이품질</td><td><span class="tag">공정개선</span></td><td>입고검사 샘플링 기준 개선</td><td>검사시간 30% 단축</td><td><span class="badge b-green">승인</span></td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IP-2603-009</td><td>03.10</td><td>박수입</td><td><span class="tag">관리방법</span></td><td>업체 정기평가 주기 조정</td><td>업체 품질향상 유도</td><td><span class="badge b-green">완료</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════ 품질개선 ════ -->
+<div class="sec" id="sec-quality">
+  <div class="row2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">품질 개선 과제</div></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>과제명</th><th>담당</th><th>진행률</th><th>상태</th></tr></thead>
+        <tbody>
+          <tr><td>외관검사 자동화</td><td>김검사</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:65%;background:var(--blue)"></div></div><span style="font-size:12px;font-weight:500">65%</span></div></td><td><span class="badge b-blue">진행</span></td></tr>
+          <tr><td>불량유형 DB 구축</td><td>이품질</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:90%;background:var(--blue)"></div></div><span style="font-size:12px;font-weight:500">90%</span></div></td><td><span class="badge b-blue">진행</span></td></tr>
+          <tr><td>업체 품질교육 체계화</td><td>박수입</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:100%;background:var(--green)"></div></div><span style="font-size:12px;font-weight:500">100%</span></div></td><td><span class="badge b-green">완료</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">월별 합격률 추이</div></div>
+      <div class="bar-chart">
+        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">88%</div><div class="bar-track"><div class="bar-fill" style="height:80%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">11월</div></div>
+        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">91%</div><div class="bar-track"><div class="bar-fill" style="height:85%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">12월</div></div>
+        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">89%</div><div class="bar-track"><div class="bar-fill" style="height:82%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">1월</div></div>
+        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">93%</div><div class="bar-track"><div class="bar-fill" style="height:88%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">2월</div></div>
+        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">92%</div><div class="bar-track"><div class="bar-fill" style="height:87%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">3월</div></div>
+        <div class="bar-col"><div class="bar-num" style="color:var(--green);font-weight:600">94%</div><div class="bar-track"><div class="bar-fill" style="height:92%;background:var(--green-bg);border:1px solid var(--green)"></div></div><div class="bar-lbl" style="font-weight:600">4월</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--text2)"><span>목표: 95%</span><span style="color:var(--green);font-weight:600">현재: 94.3% ↑</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 변경점 ════ -->
+<div class="sec" id="sec-change">
+  <div class="card">
+    <div class="card-head"><div class="card-title">변경점 관리</div></div>
+    <div class="filter-row">
+      <select><option>전체 유형</option><option>도면변경</option><option>재료변경</option><option>공정변경</option><option>설비변경</option></select>
+      <select><option>전체 업체</option><option>삼성전자</option><option>LG이노텍</option><option>현대모비스</option></select>
+      <select><option>전체 상태</option><option>검토필요</option><option>승인</option><option>반려</option></select>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>변경번호</th><th>통보일</th><th>업체</th><th>품번</th><th>변경유형</th><th>변경내용</th><th>적용일</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">ECN-2604-001</td><td>04.05</td><td>한국전자</td><td>RES-0402</td><td><span class="tag">재료변경</span></td><td>원재료 공급사 변경</td><td>04.20</td><td><span class="badge b-amber">검토필요</span></td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">ECN-2603-008</td><td>03.25</td><td>삼성전자</td><td>PCB-A102</td><td><span class="tag">도면변경</span></td><td>패턴 두께 0.1→0.12mm</td><td>04.15</td><td><span class="badge b-green">승인</span></td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">ECN-2603-005</td><td>03.15</td><td>LG이노텍</td><td>LED-M305</td><td><span class="tag">공정변경</span></td><td>SMT 솔더 페이스트 변경</td><td>04.01</td><td><span class="badge b-green">승인</span></td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">ECN-2603-002</td><td>03.05</td><td>현대모비스</td><td>CON-7780</td><td><span class="tag">설비변경</span></td><td>사출 금형 수리</td><td>03.20</td><td><span class="badge b-red">반려</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════ 협력사 현황 ════ -->
+<div class="sec" id="sec-sup-dash">
+  <div class="row4">
+    <div class="stat"><div class="stat-lbl">등록 협력사</div><div class="stat-val">32개사</div><div class="stat-sub">신규 2개사 (이번달)</div></div>
+    <div class="stat"><div class="stat-lbl">A등급 비율</div><div class="stat-val" style="color:var(--green)">43.7%</div><div class="stat-sub">14개사 / 전월 +2개</div></div>
+    <div class="stat"><div class="stat-lbl">만료 예정 인증</div><div class="stat-val" style="color:var(--amber)">5건</div><div class="stat-sub">30일 이내 만료</div></div>
+    <div class="stat"><div class="stat-lbl">미처리 개선요청</div><div class="stat-val" style="color:var(--red)">8건</div><div class="stat-sub">기한 초과 2건 포함</div></div>
+  </div>
+  <div class="row2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">등급별 분포</div></div>
+      <div class="bar-chart">
+        <div class="bar-col"><div class="bar-num" style="color:var(--green)">14</div><div class="bar-track"><div class="bar-fill" style="height:88%;background:var(--green-bg);border:1px solid var(--green)"></div></div><div class="bar-lbl">A등급</div></div>
+        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">11</div><div class="bar-track"><div class="bar-fill" style="height:70%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">B등급</div></div>
+        <div class="bar-col"><div class="bar-num" style="color:var(--amber)">5</div><div class="bar-track"><div class="bar-fill" style="height:32%;background:var(--amber-bg);border:1px solid var(--amber)"></div></div><div class="bar-lbl">C등급</div></div>
+        <div class="bar-col"><div class="bar-num" style="color:var(--red)">2</div><div class="bar-track"><div class="bar-fill" style="height:14%;background:var(--red-bg);border:1px solid var(--red)"></div></div><div class="bar-lbl">D등급</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">분류별 현황</div></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>분류</th><th>업체수</th><th>A등급</th><th>평균점수</th></tr></thead>
+        <tbody>
+          <tr><td>전자부품</td><td>10개</td><td>6개</td><td>93.4</td></tr>
+          <tr><td>기구·플라스틱</td><td>8개</td><td>3개</td><td>89.1</td></tr>
+          <tr><td>금속·가공</td><td>7개</td><td>3개</td><td>87.6</td></tr>
+          <tr><td>화학·소재</td><td>4개</td><td>1개</td><td>84.2</td></tr>
+          <tr><td>포장·물류</td><td>3개</td><td>1개</td><td>91.0</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">이달 주요 일정</div></div>
+    <div class="tl-row"><div class="tl-dot" style="background:var(--red)"></div><div class="tl-body"><div class="tl-title">한국전자 ISO 9001 인증 만료 (D-8)</div><div class="tl-time">2026.04.15 · 갱신 서류 미제출</div></div><span class="badge b-red">긴급</span></div>
+    <div class="tl-row"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-body"><div class="tl-title">현대모비스 정기평가 예정</div><div class="tl-time">2026.04.15 · 품질 / 납기 / 가격 종합</div></div><span class="badge b-amber">예정</span></div>
+    <div class="tl-row"><div class="tl-dot" style="background:var(--blue)"></div><div class="tl-body"><div class="tl-title">삼성전자 신규 납품 품목 심사</div><div class="tl-time">2026.04.18 · CAP-2220 추가</div></div><span class="badge b-blue">진행</span></div>
+    <div class="tl-row"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-body"><div class="tl-title">코오롱 계약 갱신 완료</div><div class="tl-time">2026.04.05 · 2년 연장</div></div><span class="badge b-green">완료</span></div>
+  </div>
+</div>
+
+<!-- ════ 협력사 목록 ════ -->
+<div class="sec" id="sec-sup-list">
+
+  <!-- 엑셀 업로드 배너 -->
+  <div class="xl-banner" id="xl-banner">
+    <div class="xl-left">
+      <div class="xl-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="22" height="22"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      </div>
+      <div>
+        <div class="xl-title">엑셀 일괄 업로드로 협력사 전체 연계 관리</div>
+        <div class="xl-sub">업체코드 · 업체명 · 분류 · 담당자 · 등급 · 품질점수 · 계약만료 · 납품품목 등을 한번에 등록 — 입고검사 · 부적합 · 평가 화면과 자동 연계됩니다</div>
+      </div>
+    </div>
+    <div class="xl-actions">
+      <button class="btn" onclick="downloadTemplate()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13" style="margin-right:4px;vertical-align:-1px"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 13h12"/></svg>
+        양식 다운로드
+      </button>
+      <label class="btn btn-primary" style="cursor:pointer;margin:0">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13" style="margin-right:4px;vertical-align:-1px;filter:brightness(0) invert(1)"><path d="M8 12V4M5 7l3-3 3 3"/><path d="M2 13h12"/></svg>
+        엑셀 업로드
+        <input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelUpload(event)">
+      </label>
+    </div>
+  </div>
+
+  <!-- 업로드 결과 알림 -->
+  <div id="xl-result" style="display:none" class="xl-result-bar">
+    <span id="xl-result-text"></span>
+    <button onclick="document.getElementById('xl-result').style.display='none'" style="background:none;border:none;cursor:pointer;color:inherit;font-size:16px;line-height:1;padding:0 4px">×</button>
+  </div>
+
+  <!-- 필터 + 통계 -->
+  <div class="card">
+    <div class="card-head">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="card-title">협력사 목록</div>
+        <span class="badge b-blue" id="vcount-badge">총 6개사</span>
+        <span class="badge b-green" id="va-badge">A등급 2</span>
+        <span class="badge b-gray" id="vb-badge">B등급 2</span>
+        <span class="badge b-amber" id="vc-badge">C등급 1</span>
+        <span class="badge b-red" id="vd-badge">D등급 1</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm" onclick="exportVendorCSV()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="12" height="12" style="margin-right:3px;vertical-align:-1px"><path d="M8 2v8M5 7l3 3 3-3"/><path d="M2 13h12"/></svg>
+          내보내기
+        </button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <input type="text" id="vf-search" placeholder="업체명 / 담당자 검색" oninput="filterVendors()">
+      <select id="vf-cat" onchange="filterVendors()">
+        <option value="">전체 분류</option>
+        <option>전자부품</option><option>기구·플라스틱</option><option>기구</option>
+        <option>금속·가공</option><option>화학·소재</option><option>포장·물류</option>
+      </select>
+      <select id="vf-grade" onchange="filterVendors()">
+        <option value="">전체 등급</option>
+        <option>A</option><option>B</option><option>C</option><option>D</option>
+      </select>
+      <select id="vf-status" onchange="filterVendors()">
+        <option value="">전체 상태</option>
+        <option>정상</option><option>주의</option><option>주의관리</option><option>거래정지</option>
+      </select>
+    </div>
+
+    <div class="tbl-wrap">
+      <table id="vendor-table">
+        <thead>
+          <tr>
+            <th style="width:36px"><input type="checkbox" id="chk-all" onchange="toggleAllChk(this)"></th>
+            <th onclick="sortVendors('code')" style="cursor:pointer">업체코드 <span class="sort-arrow" data-col="code">⇅</span></th>
+            <th onclick="sortVendors('name')" style="cursor:pointer">업체명 <span class="sort-arrow" data-col="name">⇅</span></th>
+            <th>분류</th>
+            <th>담당자</th>
+            <th>연락처</th>
+            <th onclick="sortVendors('grade')" style="cursor:pointer">등급 <span class="sort-arrow" data-col="grade">⇅</span></th>
+            <th onclick="sortVendors('score')" style="cursor:pointer">품질점수 <span class="sort-arrow" data-col="score">⇅</span></th>
+            <th onclick="sortVendors('expire')" style="cursor:pointer">계약만료 <span class="sort-arrow" data-col="expire">⇅</span></th>
+            <th>상태</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="vendor-tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- 페이지네이션 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--text2)" id="vpage-info">1–6 / 6개사</div>
+      <div style="display:flex;gap:4px" id="vpage-btns"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 등록·심사 ════ -->
+<div class="sec" id="sec-sup-audit">
+  <div class="row2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">신규 등록 심사 현황</div></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>업체명</th><th>분류</th><th>신청일</th><th>심사단계</th><th>진행</th></tr></thead>
+        <tbody>
+          <tr><td>에스엔티</td><td><span class="tag">금속</span></td><td>04.01</td><td>서류검토</td><td><span class="badge b-blue">진행중</span></td></tr>
+          <tr><td>KMT코리아</td><td><span class="tag">플라스틱</span></td><td>03.20</td><td>현장심사</td><td><span class="badge b-amber">일정조율</span></td></tr>
+          <tr><td>한울전자</td><td><span class="tag">전자부품</span></td><td>03.10</td><td>최종승인</td><td><span class="badge b-green">승인대기</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">심사 체크리스트</div></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>항목</th><th>배점</th><th>기준</th></tr></thead>
+        <tbody>
+          <tr><td>품질경영시스템</td><td>30점</td><td>ISO 9001 인증 여부</td></tr>
+          <tr><td>생산설비 및 공정</td><td>25점</td><td>설비능력 및 관리수준</td></tr>
+          <tr><td>검사·측정장비</td><td>20점</td><td>교정 관리 현황</td></tr>
+          <tr><td>인력 및 교육</td><td>15점</td><td>전문인력 보유 현황</td></tr>
+          <tr><td>재무 안정성</td><td>10점</td><td>신용등급 및 재무제표</td></tr>
+        </tbody>
+      </table></div>
+      <div class="divider"></div>
+      <div style="font-size:12px;color:var(--text2)">등록 기준: 70점 이상 / A등급: 90점+ / B: 80–89 / C: 70–79 / D: 60–69</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 정기평가 ════ -->
+<div class="sec" id="sec-sup-eval">
+  <div class="card">
+    <div class="card-head"><div class="card-title">2026년 1분기 정기평가 결과</div><span class="badge b-blue">평가완료</span></div>
+    <div class="filter-row">
+      <select><option>2026년 1분기</option><option>2025년 4분기</option><option>2025년 3분기</option></select>
+      <select><option>전체 분류</option><option>전자부품</option><option>기구·플라스틱</option></select>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>업체명</th><th>품질(40)</th><th>납기(25)</th><th>가격(20)</th><th>서비스(15)</th><th>총점</th><th>등급</th><th>전분기 대비</th></tr></thead>
+      <tbody>
+        <tr><td><strong>삼성전자</strong></td><td>38.5</td><td>24.0</td><td>18.8</td><td>13.5</td><td><strong>94.8</strong></td><td><span class="badge b-green">A</span></td><td style="color:var(--green)">▲ 0.8</td></tr>
+        <tr><td><strong>LG이노텍</strong></td><td>36.2</td><td>23.5</td><td>18.0</td><td>13.0</td><td><strong>90.7</strong></td><td><span class="badge b-green">A</span></td><td style="color:var(--green)">▲ 1.2</td></tr>
+        <tr><td><strong>현대모비스</strong></td><td>35.0</td><td>22.0</td><td>17.5</td><td>12.5</td><td><strong>87.0</strong></td><td><span class="badge b-blue">B</span></td><td style="color:var(--red)">▼ 0.5</td></tr>
+        <tr><td><strong>코오롱</strong></td><td>33.0</td><td>21.5</td><td>16.5</td><td>12.0</td><td><strong>83.0</strong></td><td><span class="badge b-blue">B</span></td><td style="color:var(--green)">▲ 2.0</td></tr>
+        <tr><td><strong>한국전자</strong></td><td>30.5</td><td>19.0</td><td>15.5</td><td>11.0</td><td><strong>76.0</strong></td><td><span class="badge b-amber">C</span></td><td style="color:var(--red)">▼ 3.5</td></tr>
+        <tr><td><strong>대한금속</strong></td><td>27.0</td><td>17.5</td><td>14.0</td><td>10.0</td><td><strong>68.5</strong></td><td><span class="badge b-red">D</span></td><td style="color:var(--red)">▼ 2.1</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════ 인증·계약 ════ -->
+<div class="sec" id="sec-sup-cert">
+  <div class="row2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">인증 현황</div></div>
+      <div class="cert-row"><div><div class="cert-name">삼성전자 · ISO 9001</div><div class="cert-meta">KR인증원 · 취득일 2023.03.15</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:600;color:var(--green)">D-357</div><div style="font-size:11px;color:var(--text2)">2027.03.31</div></div></div>
+      <div class="cert-row"><div><div class="cert-name">LG이노텍 · IATF 16949</div><div class="cert-meta">TÜV · 취득일 2024.06.01</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:600;color:var(--green)">D-270</div><div style="font-size:11px;color:var(--text2)">2026.12.31</div></div></div>
+      <div class="cert-row"><div><div class="cert-name">현대모비스 · ISO 14001</div><div class="cert-meta">BV · 취득일 2022.09.30</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:600;color:var(--blue)">D-87</div><div style="font-size:11px;color:var(--text2)">2026.07.04</div></div></div>
+      <div class="cert-row"><div><div class="cert-name">한국전자 · ISO 9001</div><div class="cert-meta">SGS · 취득일 2023.04.15</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:600;color:var(--red)">D-8</div><div style="font-size:11px;color:var(--text2)">2026.04.15</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">계약 현황</div></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>업체명</th><th>계약형태</th><th>만료일</th><th>상태</th></tr></thead>
+        <tbody>
+          <tr><td>삼성전자</td><td>연간단가계약</td><td>2027.03.31</td><td><span class="badge b-green">유효</span></td></tr>
+          <tr><td>LG이노텍</td><td>개별발주</td><td>2026.12.31</td><td><span class="badge b-green">유효</span></td></tr>
+          <tr><td>현대모비스</td><td>기본계약</td><td>2026.09.30</td><td><span class="badge b-blue">갱신검토</span></td></tr>
+          <tr><td>코오롱</td><td>연간단가계약</td><td>2028.04.05</td><td><span class="badge b-green">유효</span></td></tr>
+          <tr><td>한국전자</td><td>개별발주</td><td>2026.06.30</td><td><span class="badge b-amber">갱신대기</span></td></tr>
+          <tr><td>대한금속</td><td>기본계약</td><td>2026.05.31</td><td><span class="badge b-red">만료임박</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 거래실적 ════ -->
+<div class="sec" id="sec-sup-txn">
+  <div class="card">
+    <div class="card-head"><div class="card-title">거래 실적 현황</div></div>
+    <div class="filter-row">
+      <select><option>2026년</option><option>2025년</option><option>2024년</option></select>
+      <select><option>전체 업체</option><option>삼성전자</option><option>LG이노텍</option></select>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>업체명</th><th>발주건수</th><th>발주금액</th><th>납기준수율</th><th>불량률</th><th>반품건수</th><th>평가</th></tr></thead>
+      <tbody>
+        <tr><td><strong>삼성전자</strong></td><td>48건</td><td>4.2억</td><td><span style="color:var(--green);font-weight:600">99.2%</span></td><td>0.12%</td><td>0건</td><td><span class="badge b-green">우수</span></td></tr>
+        <tr><td><strong>LG이노텍</strong></td><td>36건</td><td>2.8억</td><td><span style="color:var(--green);font-weight:600">97.8%</span></td><td>0.24%</td><td>1건</td><td><span class="badge b-green">우수</span></td></tr>
+        <tr><td><strong>현대모비스</strong></td><td>52건</td><td>1.9억</td><td><span style="color:var(--blue);font-weight:600">95.1%</span></td><td>0.41%</td><td>2건</td><td><span class="badge b-blue">양호</span></td></tr>
+        <tr><td><strong>코오롱</strong></td><td>24건</td><td>0.8억</td><td><span style="color:var(--blue);font-weight:600">96.5%</span></td><td>0.33%</td><td>1건</td><td><span class="badge b-blue">양호</span></td></tr>
+        <tr><td><strong>한국전자</strong></td><td>18건</td><td>0.4억</td><td><span style="color:var(--amber);font-weight:600">91.3%</span></td><td>1.02%</td><td>3건</td><td><span class="badge b-amber">주의</span></td></tr>
+        <tr><td><strong>대한금속</strong></td><td>12건</td><td>0.3억</td><td><span style="color:var(--red);font-weight:600">83.7%</span></td><td>2.15%</td><td>5건</td><td><span class="badge b-red">불량</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════ 개선요청 ════ -->
+<div class="sec" id="sec-sup-req">
+  <div class="card">
+    <div class="card-head"><div class="card-title">개선 요청 관리</div></div>
+    <div class="filter-row">
+      <select><option>전체 유형</option><option>품질개선</option><option>납기개선</option><option>원가절감</option><option>기술지원</option></select>
+      <select><option>전체 상태</option><option>요청</option><option>검토중</option><option>이행중</option><option>완료</option><option>기한초과</option></select>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>요청번호</th><th>업체명</th><th>유형</th><th>요청내용</th><th>요청일</th><th>완료기한</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IR-2604-001</td><td>대한금속</td><td><span class="tag">품질개선</span></td><td>치수불량 재발방지 대책 수립</td><td>04.01</td><td>04.15</td><td><span class="badge b-amber">이행중</span></td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IR-2604-002</td><td>한국전자</td><td><span class="tag">납기개선</span></td><td>리드타임 단축 (14일→10일)</td><td>04.03</td><td>04.30</td><td><span class="badge b-blue">검토중</span></td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IR-2603-015</td><td>현대모비스</td><td><span class="tag">원가절감</span></td><td>재료비 5% 절감 협의</td><td>03.15</td><td>04.05</td><td><span class="badge b-red">기한초과</span></td></tr>
+        <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">IR-2603-010</td><td>코오롱</td><td><span class="tag">품질개선</span></td><td>외관검사 기준 강화</td><td>03.10</td><td>03.31</td><td><span class="badge b-green">완료</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════ 커뮤니케이션 ════ -->
+<div class="sec" id="sec-sup-comm">
+  <div class="row2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">최근 커뮤니케이션</div></div>
+      <div class="tl-row"><div class="tl-dot" style="background:var(--blue)"></div><div class="tl-body"><div class="tl-title">삼성전자 — 신규 품목 승인 요청</div><div class="tl-time">2026.04.07 10:23 · 홍길동 담당자</div></div></div>
+      <div class="tl-row"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-body"><div class="tl-title">한국전자 — ISO 인증 갱신 독촉</div><div class="tl-time">2026.04.06 14:45 · 자동발신</div></div></div>
+      <div class="tl-row"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-body"><div class="tl-title">코오롱 — 계약 갱신 서명 완료</div><div class="tl-time">2026.04.05 09:10 · 박민준 담당자</div></div></div>
+      <div class="tl-row"><div class="tl-dot" style="background:var(--red)"></div><div class="tl-body"><div class="tl-title">대한금속 — 개선요청 기한 초과 경고</div><div class="tl-time">2026.04.04 16:00 · 자동발신</div></div></div>
+      <div class="tl-row"><div class="tl-dot" style="background:var(--text3)"></div><div class="tl-body"><div class="tl-title">현대모비스 — 정기평가 일정 안내</div><div class="tl-time">2026.04.03 11:00 · 김검사 담당자</div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">메시지 작성</div></div>
+      <div class="fgrid">
+        <div class="fg full"><label>수신 업체</label><select><option>삼성전자</option><option>LG이노텍</option><option>현대모비스</option><option>코오롱</option><option>한국전자</option><option>대한금속</option></select></div>
+        <div class="fg"><label>유형</label><select><option>일반안내</option><option>개선요청</option><option>인증요청</option><option>계약관련</option><option>경고</option></select></div>
+        <div class="fg"><label>우선순위</label><select><option>일반</option><option>긴급</option><option>높음</option></select></div>
+        <div class="fg full"><label>제목</label><input type="text" placeholder="메시지 제목"></div>
+        <div class="fg full"><label>내용</label><textarea placeholder="메시지 내용을 입력하세요..."></textarea></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn">임시저장</button>
+        <button class="btn btn-primary">발송</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ════ 협력사 상세 모달 ════ -->
+<div class="overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="m-title">협력사 상세</div>
+      <button class="x-btn" onclick="closeDetail()">×</button>
+    </div>
+    <div class="tab-row">
+      <div class="tab on" onclick="switchTab('basic',this)">기본정보</div>
+      <div class="tab" onclick="switchTab('eval2',this)">평가이력</div>
+      <div class="tab" onclick="switchTab('cert2',this)">인증·계약</div>
+      <div class="tab" onclick="switchTab('items2',this)">납품품목</div>
+    </div>
+    <div class="tab-sec on" id="tab-basic">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+        <div class="avatar" id="d-av" style="width:46px;height:46px;background:var(--blue-bg);color:var(--blue-text);font-size:14px">SE</div>
+        <div style="flex:1"><div style="font-size:16px;font-weight:600" id="d-name">-</div><div style="font-size:12px;color:var(--text2);margin-top:2px" id="d-meta">-</div></div>
+        <span class="badge" id="d-grade">A등급</span>
+      </div>
+      <div class="divider"></div>
+      <table style="font-size:13px;width:100%">
+        <tr><td style="color:var(--text2);padding:5px 0;width:80px">사업자번호</td><td style="padding:5px 0" id="d-biz">-</td></tr>
+        <tr><td style="color:var(--text2);padding:5px 0">대표자</td><td style="padding:5px 0" id="d-ceo">-</td></tr>
+        <tr><td style="color:var(--text2);padding:5px 0">주소</td><td style="padding:5px 0" id="d-addr">-</td></tr>
+        <tr><td style="color:var(--text2);padding:5px 0">담당자</td><td style="padding:5px 0" id="d-pm">-</td></tr>
+        <tr><td style="color:var(--text2);padding:5px 0">등록일</td><td style="padding:5px 0" id="d-reg">-</td></tr>
+      </table>
+      <div class="kpi3">
+        <div class="kitem"><div class="knum" id="d-score" style="color:var(--green)">-</div><div class="klbl">품질점수</div></div>
+        <div class="kitem"><div class="knum" id="d-nc">-</div><div class="klbl">미결 부적합</div></div>
+        <div class="kitem"><div class="knum" id="d-items">-</div><div class="klbl">납품품목</div></div>
+      </div>
+    </div>
+    <div class="tab-sec" id="tab-eval2">
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>평가기간</th><th>총점</th><th>등급</th><th>주요 지적사항</th></tr></thead>
+        <tbody id="d-eval-rows"></tbody>
+      </table></div>
+    </div>
+    <div class="tab-sec" id="tab-cert2">
+      <div id="d-cert-content"></div>
+    </div>
+    <div class="tab-sec" id="tab-items2">
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>품번</th><th>품명</th><th>단가</th><th>월평균발주</th><th>상태</th></tr></thead>
+        <tbody id="d-item-rows"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 신규 등록 모달 ════ -->
+<div class="overlay" id="reg-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="reg-modal-title">신규 입고 검사 등록</div>
+      <button class="x-btn" onclick="closeRegModal()">×</button>
+    </div>
+    <div id="reg-form-content">
+      <div class="fgrid">
+        <div class="fg"><label>입고일</label><input type="date" value="2026-04-07"></div>
+        <div class="fg"><label>업체명</label><select><option>삼성전자</option><option>LG이노텍</option><option>현대모비스</option><option>코오롱</option><option>한국전자</option></select></div>
+        <div class="fg"><label>품번</label><input type="text" placeholder="예) PCB-A102"></div>
+        <div class="fg"><label>품명</label><input type="text" placeholder="예) 제어기판"></div>
+        <div class="fg"><label>입고수량</label><input type="number" placeholder="0"></div>
+        <div class="fg"><label>검사수량</label><input type="number" placeholder="0"></div>
+        <div class="fg"><label>검사기준</label><select><option>AQL 1.0</option><option>AQL 1.5</option><option>AQL 2.5</option><option>전수검사</option></select></div>
+        <div class="fg"><label>검사자</label><input type="text" placeholder="검사자명"></div>
+        <div class="fg full"><label>불량 내용</label><textarea placeholder="불량 내용 및 특이사항 기록..."></textarea></div>
+        <div class="fg"><label>검사결과</label><select><option>합격</option><option>조건부합격</option><option>불합격</option><option>검사중</option></select></div>
+        <div class="fg"><label>불량수량</label><input type="number" placeholder="0"></div>
+      </div>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeRegModal()">취소</button>
+      <button class="btn btn-primary" onclick="submitReg()">등록</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const titles = {
+  'iqc-dash':'수입검사 현황 요약','incoming':'입고 검사','nonconf':'부적합 관리','caplan':'대책서',
+  'improve':'개선 제안','quality':'품질 개선','change':'변경점 관리',
+  'sup-dash':'협력사 현황','sup-list':'협력사 목록','sup-audit':'등록·심사',
+  'sup-eval':'정기 평가','sup-cert':'인증·계약','sup-txn':'거래 실적',
+  'sup-req':'개선 요청','sup-comm':'커뮤니케이션'
+};
+const regTitles = {
+  'iqc-dash':'신규 입고 검사 등록','incoming':'신규 입고 검사 등록','nonconf':'부적합 등록',
+  'caplan':'대책서 등록','improve':'개선 제안 등록','quality':'품질 개선 과제 등록',
+  'change':'변경점 등록','sup-dash':'협력사 등록','sup-list':'협력사 등록',
+  'sup-audit':'신규 심사 등록','sup-eval':'평가 등록','sup-cert':'인증·계약 등록',
+  'sup-txn':'거래실적 등록','sup-req':'개선 요청 등록','sup-comm':'메시지 작성'
+};
+
+let currentPage = 'iqc-dash';
+
+function nav(id, el) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('on');
+  el.classList.add('active');
+  document.getElementById('ptitle').textContent = titles[id];
+  currentPage = id;
+}
+
+function openRegModal() {
+  document.getElementById('reg-modal-title').textContent = regTitles[currentPage] || '신규 등록';
+  document.getElementById('reg-modal').classList.add('open');
+}
+function closeRegModal() { document.getElementById('reg-modal').classList.remove('open'); }
+
+const vendors = {
+  '삼성전자': { init:'SE', meta:'전자부품 · A등급', grade:'A', gradeCls:'b-green', biz:'123-45-67890', ceo:'이재용', addr:'경기도 수원시 영통구', pm:'홍길동 (02-1234-5678)', reg:'2018.03.01', score:'97.2', scoreClr:'var(--green)', nc:'2건', items:'15종',
+    eval:[['2026 Q1','94.8','<span class="badge b-green">A</span>','—'],['2025 Q4','94.0','<span class="badge b-green">A</span>','납기 경미 지연 1건'],['2025 Q3','93.5','<span class="badge b-green">A</span>','—']],
+    certs:[['ISO 9001:2015','KR인증원','2023.03.15','D-357','var(--green)'],['거래기본계약','연간단가계약','2024.04.01','D-358','var(--green)']],
+    itemList:[['PCB-A102','제어기판','12,500원','500 EA','<span class="badge b-green">정상</span>'],['CAP-1206','커패시터','85원','3,000 EA','<span class="badge b-green">정상</span>'],['CAP-2220','커패시터(대)','120원','—','<span class="badge b-blue">심사중</span>']]
+  },
+  'LG이노텍': { init:'LG', meta:'전자부품 · A등급', grade:'A', gradeCls:'b-green', biz:'234-56-78901', ceo:'정철동', addr:'서울시 강서구 마곡동', pm:'이영희 (02-9876-5432)', reg:'2019.07.15', score:'93.8', scoreClr:'var(--blue)', nc:'1건', items:'8종',
+    eval:[['2026 Q1','90.7','<span class="badge b-green">A</span>','—'],['2025 Q4','89.5','<span class="badge b-blue">B</span>','품질 경미 지적 1건'],['2025 Q3','91.2','<span class="badge b-green">A</span>','—']],
+    certs:[['IATF 16949','TÜV','2024.06.01','D-270','var(--green)']],
+    itemList:[['LED-M305','LED모듈','4,200원','1,000 EA','<span class="badge b-green">정상</span>'],['LED-H110','LED(고휘도)','6,800원','500 EA','<span class="badge b-green">정상</span>']]
+  },
+  '현대모비스': { init:'HM', meta:'기구·플라스틱 · B등급', grade:'B', gradeCls:'b-blue', biz:'345-67-89012', ceo:'조성환', addr:'경기도 용인시 기흥구', pm:'김철수 (031-555-1234)', reg:'2017.01.10', score:'91.5', scoreClr:'var(--blue)', nc:'3건', items:'12종',
+    eval:[['2026 Q1','87.0','<span class="badge b-blue">B</span>','기능불량 3건 발생'],['2025 Q4','87.5','<span class="badge b-blue">B</span>','납기 지연 2건'],['2025 Q3','89.0','<span class="badge b-blue">B</span>','—']],
+    certs:[['ISO 14001','BV','2022.09.30','D-87','var(--blue)'],['기본거래계약','기본계약','2024.10.01','D-177','var(--blue)']],
+    itemList:[['CON-7780','커넥터','890원','2,000 EA','<span class="badge b-green">정상</span>'],['CON-5500','커넥터(소)','450원','3,000 EA','<span class="badge b-amber">주의</span>']]
+  },
+  '한국전자': { init:'KE', meta:'전자부품 · C등급', grade:'C', gradeCls:'b-amber', biz:'567-89-01234', ceo:'김한국', addr:'인천시 남동구 논현동', pm:'정수진 (032-888-4444)', reg:'2021.11.20', score:'82.3', scoreClr:'var(--amber)', nc:'5건', items:'20종',
+    eval:[['2026 Q1','76.0','<span class="badge b-amber">C</span>','불량률 초과, 납기 지연'],['2025 Q4','79.5','<span class="badge b-amber">C</span>','개선요청 미이행'],['2025 Q3','82.0','<span class="badge b-blue">B</span>','—']],
+    certs:[['ISO 9001','SGS','2023.04.15','D-8','var(--red)']],
+    itemList:[['RES-0402','저항','12원','5,000 EA','<span class="badge b-green">정상</span>'],['RES-0603','저항(대)','18원','3,000 EA','<span class="badge b-amber">주의</span>']]
+  },
+  '코오롱': { init:'KO', meta:'화학·소재 · B등급', grade:'B', gradeCls:'b-blue', biz:'456-78-90123', ceo:'이웅열', addr:'서울시 중구 을지로', pm:'박민준 (02-7777-3333)', reg:'2020.04.05', score:'88.0', scoreClr:'var(--blue)', nc:'2건', items:'6종',
+    eval:[['2026 Q1','83.0','<span class="badge b-blue">B</span>','—'],['2025 Q4','81.0','<span class="badge b-blue">B</span>','도장 품질 지적'],['2025 Q3','80.5','<span class="badge b-blue">B</span>','외관 기준 미달']],
+    certs:[['ISO 9001','BV','2021.05.01','D-180','var(--blue)'],['연간단가계약','계약','2026.04.05','D-730','var(--green)']],
+    itemList:[['HOU-A010','하우징','3,200원','300 EA','<span class="badge b-green">정상</span>']]
+  },
+  '대한금속': { init:'DH', meta:'금속·가공 · D등급', grade:'D', gradeCls:'b-red', biz:'678-90-12345', ceo:'최대한', addr:'부산시 사상구 학감동', pm:'최영수 (051-222-9999)', reg:'2022.08.01', score:'74.1', scoreClr:'var(--red)', nc:'7건', items:'9종',
+    eval:[['2026 Q1','68.5','<span class="badge b-red">D</span>','불량 다수, 개선 미이행'],['2025 Q4','70.6','<span class="badge b-amber">C</span>','치수 불량'],['2025 Q3','72.0','<span class="badge b-amber">C</span>','—']],
+    certs:[['기본거래계약','기본계약','2025.06.01','D-55','var(--amber)']],
+    itemList:[['BRK-100','브라켓','1,200원','800 EA','<span class="badge b-amber">주의</span>'],['SHF-200','샤프트','4,500원','200 EA','<span class="badge b-red">보류</span>']]
+  }
+};
+
+function openDetail(name) {
+  const d = vendors[name];
+  if (!d) return;
+  document.getElementById('m-title').textContent = name + ' 상세';
+  document.getElementById('d-av').textContent = d.init;
+  document.getElementById('d-name').textContent = name;
+  document.getElementById('d-meta').textContent = d.meta;
+  document.getElementById('d-grade').textContent = d.grade + '등급';
+  document.getElementById('d-grade').className = 'badge ' + d.gradeCls;
+  document.getElementById('d-biz').textContent = d.biz;
+  document.getElementById('d-ceo').textContent = d.ceo;
+  document.getElementById('d-addr').textContent = d.addr;
+  document.getElementById('d-pm').textContent = d.pm;
+  document.getElementById('d-reg').textContent = d.reg;
+  document.getElementById('d-score').textContent = d.score;
+  document.getElementById('d-score').style.color = d.scoreClr;
+  document.getElementById('d-nc').textContent = d.nc;
+  document.getElementById('d-items').textContent = d.items;
+  document.getElementById('d-eval-rows').innerHTML = d.eval.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+  document.getElementById('d-cert-content').innerHTML = d.certs.map(c => `<div class="cert-row"><div><div class="cert-name">${c[0]}</div><div class="cert-meta">${c[1]} · 취득일 ${c[2]}</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:600;color:${c[4]}">${c[3]}</div></div></div>`).join('');
+  document.getElementById('d-item-rows').innerHTML = d.itemList.map(i => `<tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${i[0]}</td><td>${i[1]}</td><td>${i[2]}</td><td>${i[3]}</td><td>${i[4]}</td></tr>`).join('');
+  switchTab('basic', document.querySelector('#detail-modal .tab-row .tab'));
+  document.getElementById('detail-modal').classList.add('open');
+}
+function closeDetail() { document.getElementById('detail-modal').classList.remove('open'); }
+
+function switchTab(id, el) {
+  const modal = el.closest('.modal');
+  modal.querySelectorAll('.tab-sec').forEach(s => s.classList.remove('on'));
+  modal.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  modal.querySelector('#tab-' + id).classList.add('on');
+  el.classList.add('on');
+}
+
+document.getElementById('detail-modal').addEventListener('click', function(e) { if (e.target === this) closeDetail(); });
+document.getElementById('reg-modal').addEventListener('click', function(e) { if (e.target === this) closeRegModal(); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeDetail(); closeRegModal(); } });
+
+const today = new Date();
+document.getElementById('today-date').textContent = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
+
+/* ── 등록 카운터 ── */
+let iqcSeq = 7, ncSeq = 5, caSeq = 4, ipSeq = 4, ecnSeq = 5, irSeq = 5, vSeq = 7;
+function pad2(n){ return String(n).padStart(2,'0'); }
+function nowYM(){ return '2604'; }
+
+/* ── 결과별 badge ── */
+function resultBadge(v){
+  const m = {'합격':'b-green','조건부합격':'b-blue','불합격':'b-red','검사중':'b-amber'};
+  return `<span class="badge ${m[v]||'b-gray'}">${v}</span>`;
+}
+function statusBadge(v){
+  const m = {'정상':'b-green','주의':'b-amber','주의관리':'b-red','정상거래':'b-green','거래정지':'b-red'};
+  return `<span class="badge ${m[v]||'b-gray'}">${v}</span>`;
+}
+function gradeBadge(v){
+  const m = {'A':'b-green','B':'b-blue','C':'b-amber','D':'b-red'};
+  return `<span class="badge ${m[v]||'b-gray'}">${v}</span>`;
+}
+
+/* ── 폼 값 읽기 헬퍼 ── */
+function fval(idx){ return document.querySelectorAll('#reg-form-content input, #reg-form-content select, #reg-form-content textarea')[idx]?.value || ''; }
+
+/* ── 토스트 알림 ── */
+function toast(msg){
+  let t = document.getElementById('toast-msg');
+  if(!t){
+    t = document.createElement('div');
+    t.id = 'toast-msg';
+    t.style.cssText = 'position:fixed;bottom:28px;right:28px;background:var(--text);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity .25s;pointer-events:none;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._to);
+  t._to = setTimeout(()=>{ t.style.opacity='0'; }, 2000);
+}
+
+/* ── 메인 등록 함수 ── */
+function submitReg(){
+  const page = currentPage;
+
+  if(page === 'iqc-dash' || page === 'incoming'){
+    const inputs = document.querySelectorAll('#reg-form-content input, #reg-form-content select, #reg-form-content textarea');
+    const date   = inputs[0]?.value || '';
+    const vendor = inputs[1]?.value || '';
+    const pnum   = inputs[2]?.value || '';
+    const pname  = inputs[3]?.value || '';
+    const inQty  = inputs[4]?.value || '0';
+    const chkQty = inputs[5]?.value || '0';
+    const insp   = inputs[7]?.value || '';
+    const result = inputs[9]?.value || '검사중';
+    const defQty = inputs[10]?.value || '—';
+    if(!vendor || !pnum){ toast('업체명과 품번은 필수입니다.'); return; }
+    const seq  = 'IQC-' + nowYM() + '-' + pad2(iqcSeq++);
+    const mmdd = date ? date.slice(5).replace('-','.') : '—';
+    const tbody = document.querySelector('#sec-incoming table tbody');
+    if(tbody){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>${mmdd}</td><td>${vendor}</td><td>${pnum}</td><td>${pname}</td><td>${inQty}</td><td>${chkQty}</td><td>${defQty}</td><td>${resultBadge(result)}</td><td>${insp}</td>`;
+      tbody.prepend(tr);
+    }
+    toast(`입고검사 등록 완료: ${seq}`);
+  }
+
+  else if(page === 'nonconf'){
+    const inputs = document.querySelectorAll('#reg-form-content input, #reg-form-content select, #reg-form-content textarea');
+    const vendor = inputs[0]?.value || '';
+    const pnum   = inputs[1]?.value || '';
+    const dtype  = inputs[2]?.value || '';
+    const dqty   = inputs[3]?.value || '0';
+    const sev    = inputs[4]?.value || '보통';
+    const due    = inputs[5]?.value || '';
+    if(!vendor){ toast('업체명은 필수입니다.'); return; }
+    const seq  = 'NC-' + nowYM() + '-' + pad2(ncSeq++);
+    const tbody = document.querySelector('#sec-nonconf table tbody');
+    if(tbody){
+      const sevMap = {'심각':'b-red','보통':'b-gray','경미':'b-amber'};
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>${document.getElementById('today-date').textContent.slice(5)}</td><td>${vendor}</td><td>${pnum}</td><td>${dtype}</td><td>${dqty}</td><td><span class="badge ${sevMap[sev]||'b-gray'}">${sev}</span></td><td>${due||'—'}</td><td><span class="badge b-amber">미처리</span></td>`;
+      tbody.prepend(tr);
+    }
+    toast(`부적합 등록 완료: ${seq}`);
+  }
+
+  else if(page === 'caplan'){
+    const inputs = document.querySelectorAll('#reg-form-content input, #reg-form-content select, #reg-form-content textarea');
+    const ncRef  = inputs[0]?.value || '';
+    const due    = inputs[1]?.value || '';
+    const resp   = inputs[2]?.value || '';
+    if(!ncRef){ toast('부적합번호를 입력하세요.'); return; }
+    const seq  = 'CA-' + nowYM() + '-' + pad2(caSeq++);
+    const tbody = document.querySelector('#sec-caplan .card:first-child table tbody');
+    if(tbody){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>—</td><td>${ncRef}</td><td>${document.getElementById('today-date').textContent.slice(5)}</td><td>${due||'—'}</td><td><span class="badge b-amber">검토중</span></td>`;
+      tbody.prepend(tr);
+    }
+    toast(`대책서 등록 완료: ${seq}`);
+  }
+
+  else if(page === 'improve'){
+    const inputs = document.querySelectorAll('#reg-form-content input, #reg-form-content select, #reg-form-content textarea');
+    const cat    = inputs[0]?.value || '';
+    const title  = inputs[1]?.value || '';
+    const effect = inputs[2]?.value || '';
+    const author = inputs[3]?.value || '';
+    if(!title){ toast('제목을 입력하세요.'); return; }
+    const seq  = 'IP-' + nowYM() + '-' + pad2(ipSeq++);
+    const tbody = document.querySelector('#sec-improve table tbody');
+    if(tbody){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>${document.getElementById('today-date').textContent.slice(5)}</td><td>${author||'—'}</td><td><span class="tag">${cat}</span></td><td>${title}</td><td>${effect||'—'}</td><td><span class="badge b-blue">제안</span></td>`;
+      tbody.prepend(tr);
+    }
+    toast(`개선 제안 등록 완료: ${seq}`);
+  }
+
+  else if(page === 'change'){
+    const inputs = document.querySelectorAll('#reg-form-content input, #reg-form-content select, #reg-form-content textarea');
+    const vendor = inputs[0]?.value || '';
+    const pnum   = inputs[1]?.value || '';
+    const ctype  = inputs[2]?.value || '';
+    const cdesc  = inputs[3]?.value || '';
+    const appDate= inputs[4]?.value || '';
+    if(!vendor){ toast('업체명은 필수입니다.'); return; }
+    const seq  = 'ECN-' + nowYM() + '-' + pad2(ecnSeq++);
+    const tbody = document.querySelector('#sec-change table tbody');
+    if(tbody){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>${document.getElementById('today-date').textContent.slice(5)}</td><td>${vendor}</td><td>${pnum}</td><td><span class="tag">${ctype}</span></td><td>${cdesc}</td><td>${appDate||'—'}</td><td><span class="badge b-amber">검토필요</span></td>`;
+      tbody.prepend(tr);
+    }
+    toast(`변경점 등록 완료: ${seq}`);
+  }
+
+  else if(page === 'sup-dash' || page === 'sup-list'){
+    const inputs = document.querySelectorAll('#reg-form-content input, #reg-form-content select, #reg-form-content textarea');
+    const name   = inputs[0]?.value || '';
+    const biz    = inputs[1]?.value || '';
+    const ceo    = inputs[2]?.value || '';
+    const cat    = inputs[3]?.value || '';
+    const pm     = inputs[4]?.value || '';
+    const tel    = inputs[5]?.value || '';
+    if(!name){ toast('업체명은 필수입니다.'); return; }
+    const code = 'V-' + pad2(vSeq++);
+    const tbody = document.querySelector('#sec-sup-list table tbody');
+    if(tbody){
+      const init = name.slice(0,2).toUpperCase();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="color:var(--text2);font-family:'IBM Plex Mono',monospace;font-size:12px">${code}</td><td><strong>${name}</strong></td><td><span class="tag">${cat}</span></td><td>${pm}</td><td>${tel}</td><td><span class="badge b-gray">심사중</span></td><td>—</td><td>—</td><td><span class="badge b-blue">등록중</span></td><td><button class="btn btn-sm" onclick="openDetail('${name}')">상세</button></td>`;
+      tbody.prepend(tr);
+    }
+    toast(`협력사 등록 완료: ${name} (${code})`);
+  }
+
+  else if(page === 'sup-req'){
+    const inputs = document.querySelectorAll('#reg-form-content input, #reg-form-content select, #reg-form-content textarea');
+    const vendor = inputs[0]?.value || '';
+    const rtype  = inputs[1]?.value || '';
+    const content= inputs[2]?.value || '';
+    const due    = inputs[3]?.value || '';
+    if(!vendor){ toast('업체명은 필수입니다.'); return; }
+    const seq  = 'IR-' + nowYM() + '-' + pad2(irSeq++);
+    const tbody = document.querySelector('#sec-sup-req table tbody');
+    if(tbody){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>${vendor}</td><td><span class="tag">${rtype}</span></td><td>${content}</td><td>${document.getElementById('today-date').textContent.slice(5)}</td><td>${due||'—'}</td><td><span class="badge b-blue">요청</span></td>`;
+      tbody.prepend(tr);
+    }
+    toast(`개선 요청 등록 완료: ${seq}`);
+  }
+
+  else {
+    toast('등록이 완료되었습니다.');
+  }
+
+  /* 폼 초기화 후 모달 닫기 */
+  document.querySelectorAll('#reg-form-content input[type="text"], #reg-form-content input[type="number"], #reg-form-content textarea').forEach(el => el.value = '');
+  closeRegModal();
+}
+
+/* ── 페이지별 등록 폼 동적 교체 ── */
+const regForms = {
+  'iqc-dash': regFormIQC, 'incoming': regFormIQC,
+  'nonconf': regFormNC,
+  'caplan': regFormCA,
+  'improve': regFormIP,
+  'change': regFormECN,
+  'sup-dash': regFormVendor, 'sup-list': regFormVendor,
+  'sup-audit': regFormAudit,
+  'sup-req': regFormIR,
+  'sup-comm': regFormMsg,
+};
+
+function openRegModal(){
+  document.getElementById('reg-modal-title').textContent = regTitles[currentPage] || '신규 등록';
+  const formFn = regForms[currentPage];
+  document.getElementById('reg-form-content').innerHTML = formFn ? formFn() : regFormDefault();
+  document.getElementById('reg-modal').classList.add('open');
+}
+
+function regFormIQC(){ return `<div class="fgrid">
+  <div class="fg"><label>입고일</label><input type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+  <div class="fg"><label>업체명</label><select><option>삼성전자</option><option>LG이노텍</option><option>현대모비스</option><option>코오롱</option><option>한국전자</option></select></div>
+  <div class="fg"><label>품번</label><input type="text" placeholder="예) PCB-A102"></div>
+  <div class="fg"><label>품명</label><input type="text" placeholder="예) 제어기판"></div>
+  <div class="fg"><label>입고수량</label><input type="number" placeholder="0"></div>
+  <div class="fg"><label>검사수량</label><input type="number" placeholder="0"></div>
+  <div class="fg"><label>검사기준</label><select><option>AQL 1.0</option><option>AQL 1.5</option><option>AQL 2.5</option><option>전수검사</option></select></div>
+  <div class="fg"><label>검사자</label><input type="text" placeholder="검사자명"></div>
+  <div class="fg full"><label>불량 내용</label><textarea placeholder="불량 내용 및 특이사항..."></textarea></div>
+  <div class="fg"><label>검사결과</label><select><option>합격</option><option>조건부합격</option><option>불합격</option><option>검사중</option></select></div>
+  <div class="fg"><label>불량수량</label><input type="number" placeholder="0"></div>
+</div>`; }
+
+function regFormNC(){ return `<div class="fgrid">
+  <div class="fg"><label>업체명</label><select><option>삼성전자</option><option>LG이노텍</option><option>현대모비스</option><option>코오롱</option><option>한국전자</option><option>대한금속</option></select></div>
+  <div class="fg"><label>품번</label><input type="text" placeholder="예) PCB-A102"></div>
+  <div class="fg"><label>불량유형</label><select><option>치수불량</option><option>외관불량</option><option>기능불량</option><option>도장불량</option><option>기타</option></select></div>
+  <div class="fg"><label>불량수량</label><input type="number" placeholder="0"></div>
+  <div class="fg"><label>심각도</label><select><option>심각</option><option>보통</option><option>경미</option></select></div>
+  <div class="fg"><label>처리기한</label><input type="date"></div>
+  <div class="fg full"><label>특이사항</label><textarea placeholder="발생 경위 및 특이사항..."></textarea></div>
+</div>`; }
+
+function regFormCA(){ return `<div class="fgrid">
+  <div class="fg"><label>관련 부적합번호</label><input type="text" placeholder="NC-2604-001"></div>
+  <div class="fg"><label>완료 예정일</label><input type="date"></div>
+  <div class="fg full"><label>담당자</label><input type="text" placeholder="담당자명"></div>
+  <div class="fg full"><label>현상 파악</label><textarea placeholder="불량 현상 기술..."></textarea></div>
+  <div class="fg full"><label>원인 분석 (5-Why)</label><textarea placeholder="근본 원인 분석..."></textarea></div>
+  <div class="fg full"><label>시정 조치</label><textarea placeholder="즉각적 시정 조치..."></textarea></div>
+  <div class="fg full"><label>재발 방지 대책</label><textarea placeholder="항구 대책..."></textarea></div>
+</div>`; }
+
+function regFormIP(){ return `<div class="fgrid">
+  <div class="fg"><label>분류</label><select><option>공정개선</option><option>설계변경</option><option>검사방법</option><option>관리방법</option></select></div>
+  <div class="fg full"><label>제목</label><input type="text" placeholder="개선 제안 제목"></div>
+  <div class="fg full"><label>기대 효과</label><input type="text" placeholder="예) 검사시간 30% 단축"></div>
+  <div class="fg"><label>제안자</label><input type="text" placeholder="이름"></div>
+  <div class="fg full"><label>상세 내용</label><textarea placeholder="제안 내용 상세 기술..."></textarea></div>
+</div>`; }
+
+function regFormECN(){ return `<div class="fgrid">
+  <div class="fg"><label>업체명</label><select><option>삼성전자</option><option>LG이노텍</option><option>현대모비스</option><option>코오롱</option><option>한국전자</option><option>대한금속</option></select></div>
+  <div class="fg"><label>품번</label><input type="text" placeholder="예) PCB-A102"></div>
+  <div class="fg"><label>변경유형</label><select><option>도면변경</option><option>재료변경</option><option>공정변경</option><option>설비변경</option></select></div>
+  <div class="fg"><label>적용 예정일</label><input type="date"></div>
+  <div class="fg full"><label>변경 내용</label><textarea placeholder="변경 내용 상세 기술..."></textarea></div>
+</div>`; }
+
+function regFormVendor(){ return `<div class="fgrid">
+  <div class="fg"><label>업체명</label><input type="text" placeholder="정식 업체명"></div>
+  <div class="fg"><label>사업자번호</label><input type="text" placeholder="000-00-00000"></div>
+  <div class="fg"><label>대표자</label><input type="text"></div>
+  <div class="fg"><label>분류</label><select><option>전자부품</option><option>기구·플라스틱</option><option>금속·가공</option><option>화학·소재</option><option>포장·물류</option></select></div>
+  <div class="fg"><label>담당자명</label><input type="text"></div>
+  <div class="fg"><label>연락처</label><input type="text" placeholder="00-0000-0000"></div>
+  <div class="fg full"><label>주소</label><input type="text"></div>
+  <div class="fg full"><label>특이사항</label><textarea placeholder="특이사항 또는 등록 배경..."></textarea></div>
+</div>`; }
+
+function regFormAudit(){ return `<div class="fgrid">
+  <div class="fg full"><label>업체명</label><input type="text" placeholder="심사 대상 업체명"></div>
+  <div class="fg"><label>분류</label><select><option>전자부품</option><option>기구·플라스틱</option><option>금속·가공</option><option>화학·소재</option></select></div>
+  <div class="fg"><label>신청일</label><input type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+  <div class="fg full"><label>비고</label><textarea placeholder="심사 배경 및 특이사항..."></textarea></div>
+</div>`; }
+
+function regFormIR(){ return `<div class="fgrid">
+  <div class="fg"><label>업체명</label><select><option>삼성전자</option><option>LG이노텍</option><option>현대모비스</option><option>코오롱</option><option>한국전자</option><option>대한금속</option></select></div>
+  <div class="fg"><label>유형</label><select><option>품질개선</option><option>납기개선</option><option>원가절감</option><option>기술지원</option></select></div>
+  <div class="fg full"><label>요청 내용</label><input type="text" placeholder="요청 내용 요약"></div>
+  <div class="fg"><label>완료 기한</label><input type="date"></div>
+  <div class="fg full"><label>상세 내용</label><textarea placeholder="상세 내용..."></textarea></div>
+</div>`; }
+
+function regFormMsg(){ return `<div class="fgrid">
+  <div class="fg full"><label>수신 업체</label><select><option>삼성전자</option><option>LG이노텍</option><option>현대모비스</option><option>코오롱</option><option>한국전자</option><option>대한금속</option></select></div>
+  <div class="fg"><label>유형</label><select><option>일반안내</option><option>개선요청</option><option>인증요청</option><option>계약관련</option><option>경고</option></select></div>
+  <div class="fg"><label>우선순위</label><select><option>일반</option><option>높음</option><option>긴급</option></select></div>
+  <div class="fg full"><label>제목</label><input type="text" placeholder="메시지 제목"></div>
+  <div class="fg full"><label>내용</label><textarea placeholder="메시지 내용..."></textarea></div>
+</div>`; }
+
+function regFormDefault(){ return `<div class="fgrid"><div class="fg full"><label>내용</label><textarea placeholder="내용을 입력하세요..."></textarea></div></div>`; }
+
+/* ══════════════════════════════════════════
+   VENDOR STORE — 협력사 전역 데이터 저장소
+   모든 메뉴에서 이 배열을 참조합니다
+══════════════════════════════════════════ */
+let vendorStore = [
+  {code:'V-001',name:'삼성전자',   cat:'전자부품',  pm:'홍길동', tel:'02-1234-5678', grade:'A',score:97.2,expire:'2027.03.31',status:'정상', biz:'123-45-67890',ceo:'이재용',addr:'경기도 수원시 영통구',reg:'2018.03.01'},
+  {code:'V-002',name:'LG이노텍',   cat:'전자부품',  pm:'이영희', tel:'02-9876-5432', grade:'A',score:93.8,expire:'2026.12.31',status:'정상', biz:'234-56-78901',ceo:'정철동',addr:'서울시 강서구 마곡동',reg:'2019.07.15'},
+  {code:'V-003',name:'현대모비스', cat:'기구',       pm:'김철수', tel:'031-555-1234',grade:'B',score:91.5,expire:'2026.09.30',status:'정상', biz:'345-67-89012',ceo:'조성환',addr:'경기도 용인시 기흥구',reg:'2017.01.10'},
+  {code:'V-004',name:'코오롱',     cat:'화학·소재', pm:'박민준', tel:'02-7777-3333', grade:'B',score:88.0,expire:'2028.04.05',status:'정상', biz:'456-78-90123',ceo:'이웅열',addr:'서울시 중구 을지로', reg:'2020.04.05'},
+  {code:'V-005',name:'한국전자',   cat:'전자부품',  pm:'정수진', tel:'032-888-4444', grade:'C',score:82.3,expire:'2026.06.30',status:'주의', biz:'567-89-01234',ceo:'김한국',addr:'인천시 남동구 논현동',reg:'2021.11.20'},
+  {code:'V-006',name:'대한금속',   cat:'금속·가공', pm:'최영수', tel:'051-222-9999', grade:'D',score:74.1,expire:'2026.05.31',status:'주의관리',biz:'678-90-12345',ceo:'최대한',addr:'부산시 사상구 학감동',reg:'2022.08.01'}
+];
+
+let vSortCol = '', vSortDir = 1, vPage = 1, vPageSize = 15;
+let vFiltered = [...vendorStore];
+
+/* ── 엑셀 컬럼 매핑 (유연하게 처리) ── */
+const COL_MAP = {
+  '업체코드':['업체코드','코드','code'],
+  'name':    ['업체명','회사명','업체 명','name'],
+  'cat':     ['분류','카테고리','업종','cat','category'],
+  'pm':      ['담당자','담당자명','pm','manager'],
+  'tel':     ['연락처','전화','전화번호','tel','phone'],
+  'grade':   ['등급','grade'],
+  'score':   ['품질점수','점수','score'],
+  'expire':  ['계약만료','만료일','계약만료일','expire'],
+  'status':  ['상태','거래상태','status'],
+  'biz':     ['사업자번호','사업자','biz'],
+  'ceo':     ['대표자','대표','ceo'],
+  'addr':    ['주소','addr','address'],
+};
+
+function findColKey(headers, candidates) {
+  for (const h of headers) {
+    const norm = h.trim().toLowerCase();
+    for (const c of candidates) {
+      if (norm === c.toLowerCase() || norm.includes(c.toLowerCase())) return h;
+    }
+  }
+  return null;
+}
+
+/* ── 엑셀 업로드 핸들러 ── */
+function handleExcelUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = ''; // reset so same file can be re-uploaded
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  const showResult = (msg, type) => {
+    const el = document.getElementById('xl-result');
+    const tx = document.getElementById('xl-result-text');
+    el.className = 'xl-result-bar xl-result-' + type;
+    tx.textContent = msg;
+    el.style.display = 'flex';
+  };
+
+  if (ext === 'csv') {
+    const reader = new FileReader();
+    reader.onload = ev => processSheetData(ev.target.result, true, file.name, showResult);
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read(ev.target.result, {type:'binary', cellDates:true});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const csv = XLSX.utils.sheet_to_csv(ws);
+        processSheetData(csv, true, file.name, showResult);
+      } catch(err) {
+        showResult('파일 읽기 실패: ' + err.message, 'err');
+      }
+    };
+    reader.readAsBinaryString(file);
+  }
+}
+
+function processSheetData(csv, replace, filename, showResult) {
+  const lines = csv.split('\n').filter(l => l.trim());
+  if (lines.length < 2) { showResult('데이터가 없습니다. 헤더 포함 2행 이상 필요합니다.', 'err'); return; }
+
+  const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
+
+  // Map columns
+  const colName   = findColKey(headers, COL_MAP['name']);
+  const colCat    = findColKey(headers, COL_MAP['cat']);
+  const colPm     = findColKey(headers, COL_MAP['pm']);
+  const colTel    = findColKey(headers, COL_MAP['tel']);
+  const colGrade  = findColKey(headers, COL_MAP['grade']);
+  const colScore  = findColKey(headers, COL_MAP['score']);
+  const colExpire = findColKey(headers, COL_MAP['expire']);
+  const colStatus = findColKey(headers, COL_MAP['status']);
+  const colBiz    = findColKey(headers, COL_MAP['biz']);
+  const colCeo    = findColKey(headers, COL_MAP['ceo']);
+  const colAddr   = findColKey(headers, COL_MAP['addr']);
+
+  if (!colName) { showResult('필수 컬럼 "업체명"을 찾을 수 없습니다. 양식을 확인해주세요.', 'err'); return; }
+
+  const hIdx = {};
+  headers.forEach((h,i) => hIdx[h] = i);
+
+  const getVal = (row, col) => col ? (row[hIdx[col]] || '').replace(/"/g,'').trim() : '';
+
+  const newRows = []; let added = 0, updated = 0, skipped = 0;
+  const existingNames = new Set(vendorStore.map(v => v.name));
+
+  for (let i = 1; i < lines.length; i++) {
+    const row = lines[i].split(',');
+    const name = getVal(row, colName);
+    if (!name) { skipped++; continue; }
+
+    const obj = {
+      code:   'V-' + String(vendorStore.length + added + 1).padStart(3,'0'),
+      name,
+      cat:    getVal(row, colCat)    || '미분류',
+      pm:     getVal(row, colPm)     || '—',
+      tel:    getVal(row, colTel)    || '—',
+      grade:  (getVal(row, colGrade) || 'B').toUpperCase(),
+      score:  parseFloat(getVal(row, colScore)) || 80.0,
+      expire: getVal(row, colExpire) || '—',
+      status: getVal(row, colStatus) || '정상',
+      biz:    getVal(row, colBiz)    || '—',
+      ceo:    getVal(row, colCeo)    || '—',
+      addr:   getVal(row, colAddr)   || '—',
+      reg:    new Date().toISOString().slice(0,10).replace(/-/g,'.'),
+    };
+
+    if (existingNames.has(name)) {
+      // UPDATE existing
+      const idx = vendorStore.findIndex(v => v.name === name);
+      if (idx >= 0) {
+        obj.code = vendorStore[idx].code;
+        obj.reg  = vendorStore[idx].reg;
+        vendorStore[idx] = obj;
+        updated++;
+      }
+    } else {
+      newRows.push(obj);
+      existingNames.add(name);
+      added++;
+    }
+  }
+
+  vendorStore.push(...newRows);
+  syncVendorDropdowns();
+  renderVendorTable();
+  updateVendorBadges();
+
+  const msg = `✓ "${filename}" 업로드 완료 — 신규 ${added}개사 추가, ${updated}개사 업데이트, ${skipped}행 건너뜀. 입고검사·부적합·평가 메뉴에 자동 반영됩니다.`;
+  showResult(msg, added + updated > 0 ? 'ok' : 'warn');
+  toast('협력사 ' + added + '개 추가 · ' + updated + '개 업데이트 완료');
+}
+
+/* ── 협력사 드롭다운 전체 동기화 ── */
+function syncVendorDropdowns() {
+  const names = vendorStore.map(v => v.name);
+  document.querySelectorAll('select').forEach(sel => {
+    const opts = Array.from(sel.options).map(o => o.value || o.text);
+    const isVendorSel = opts.some(o => names.includes(o)) ||
+      sel.previousElementSibling?.textContent?.includes('업체') ||
+      sel.id?.includes('vendor') ||
+      (sel.options[0] && ['전체 업체','삼성전자','수신 업체'].some(k => sel.options[0].text.includes(k.slice(0,3))));
+    if (!isVendorSel) return;
+
+    const first = sel.options[0];
+    while (sel.options.length > 1) sel.remove(1);
+    names.forEach(n => {
+      const opt = document.createElement('option');
+      opt.value = n; opt.text = n;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+/* ── 테이블 렌더링 ── */
+const GRADE_CLS = {A:'b-green',B:'b-blue',C:'b-amber',D:'b-red'};
+const STATUS_CLS = {정상:'b-green',주의:'b-amber',주의관리:'b-red',거래정지:'b-gray'};
+
+function renderVendorTable() {
+  const tbody = document.getElementById('vendor-tbody');
+  if (!tbody) return;
+
+  // sort
+  if (vSortCol) {
+    vFiltered.sort((a,b) => {
+      let av = a[vSortCol], bv = b[vSortCol];
+      if (typeof av === 'string') av = av.toLowerCase();
+      if (typeof bv === 'string') bv = bv.toLowerCase();
+      return av < bv ? -vSortDir : av > bv ? vSortDir : 0;
+    });
+  }
+
+  // paginate
+  const total = vFiltered.length;
+  const pages = Math.max(1, Math.ceil(total / vPageSize));
+  vPage = Math.min(vPage, pages);
+  const start = (vPage-1)*vPageSize, end = Math.min(start+vPageSize, total);
+  const pageRows = vFiltered.slice(start, end);
+
+  tbody.innerHTML = pageRows.map(v => {
+    const gc = GRADE_CLS[v.grade] || 'b-gray';
+    const sc = STATUS_CLS[v.status] || 'b-gray';
+    return `<tr>
+      <td><input type="checkbox" class="row-chk" data-name="${v.name}"></td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text2)">${v.code}</td>
+      <td><strong>${v.name}</strong></td>
+      <td><span class="tag">${v.cat}</span></td>
+      <td>${v.pm}</td>
+      <td>${v.tel}</td>
+      <td style="text-align:center"><span class="badge ${gc}">${v.grade}</span></td>
+      <td style="text-align:center;font-weight:600">${v.score.toFixed(1)}</td>
+      <td style="font-size:12px">${v.expire}</td>
+      <td><span class="badge ${sc}">${v.status}</span></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="openDetail('${v.name}')">상세</button>
+        <button class="btn btn-sm" style="margin-left:4px;color:var(--red-text);border-color:var(--red)" onclick="deleteVendor('${v.name}')">삭제</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // page info
+  const info = document.getElementById('vpage-info');
+  if (info) info.textContent = total ? `${start+1}–${end} / 총 ${total}개사` : '결과 없음';
+
+  // pagination buttons
+  const pb = document.getElementById('vpage-btns');
+  if (pb) {
+    pb.innerHTML = '';
+    for (let p = 1; p <= pages; p++) {
+      const b = document.createElement('button');
+      b.className = 'btn btn-sm' + (p===vPage?' btn-primary':'');
+      b.textContent = p;
+      b.onclick = () => { vPage = p; renderVendorTable(); };
+      pb.appendChild(b);
+    }
+  }
+}
+
+function updateVendorBadges() {
+  const total = vendorStore.length;
+  const cnt = g => vendorStore.filter(v=>v.grade===g).length;
+  const el = id => document.getElementById(id);
+  if(el('vcount-badge')) el('vcount-badge').textContent = `총 ${total}개사`;
+  if(el('va-badge'))     el('va-badge').textContent     = `A등급 ${cnt('A')}`;
+  if(el('vb-badge'))     el('vb-badge').textContent     = `B등급 ${cnt('B')}`;
+  if(el('vc-badge'))     el('vc-badge').textContent     = `C등급 ${cnt('C')}`;
+  if(el('vd-badge'))     el('vd-badge').textContent     = `D등급 ${cnt('D')}`;
+}
+
+function filterVendors() {
+  const q      = (document.getElementById('vf-search')?.value||'').toLowerCase();
+  const cat    = document.getElementById('vf-cat')?.value   || '';
+  const grade  = document.getElementById('vf-grade')?.value || '';
+  const status = document.getElementById('vf-status')?.value|| '';
+  vFiltered = vendorStore.filter(v => {
+    if (q && !v.name.toLowerCase().includes(q) && !v.pm.toLowerCase().includes(q)) return false;
+    if (cat    && v.cat    !== cat)    return false;
+    if (grade  && v.grade  !== grade)  return false;
+    if (status && v.status !== status) return false;
+    return true;
+  });
+  vPage = 1;
+  renderVendorTable();
+}
+
+function sortVendors(col) {
+  if (vSortCol === col) vSortDir *= -1; else { vSortCol = col; vSortDir = 1; }
+  document.querySelectorAll('.sort-arrow').forEach(el => {
+    el.classList.remove('asc','desc');
+    if (el.dataset.col === col) el.classList.add(vSortDir===1?'asc':'desc');
+  });
+  renderVendorTable();
+}
+
+function toggleAllChk(cb) {
+  document.querySelectorAll('.row-chk').forEach(c => c.checked = cb.checked);
+}
+
+function deleteVendor(name) {
+  if (!confirm(`"${name}"을 목록에서 삭제하시겠습니까?`)) return;
+  vendorStore = vendorStore.filter(v => v.name !== name);
+  filterVendors();
+  updateVendorBadges();
+  toast(name + ' 삭제 완료');
+}
+
+/* ── 양식 다운로드 ── */
+function downloadTemplate() {
+  const headers = ['업체코드','업체명','분류','담당자','연락처','등급','품질점수','계약만료','상태','사업자번호','대표자','주소'];
+  const sample  = ['V-007','(주)예시업체','전자부품','홍길동','02-0000-0000','A','95.0','2027.12.31','정상','000-00-00000','홍대표','서울시 강남구'];
+  const csv = [headers.join(','), sample.join(',')].join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'PASECO_협력사_업로드양식.csv';
+  a.click();
+}
+
+/* ── CSV 내보내기 ── */
+function exportVendorCSV() {
+  const selected = [...document.querySelectorAll('.row-chk:checked')].map(c=>c.dataset.name);
+  const rows = selected.length ? vendorStore.filter(v=>selected.includes(v.name)) : vendorStore;
+  const headers = ['업체코드','업체명','분류','담당자','연락처','등급','품질점수','계약만료','상태','사업자번호','대표자','주소'];
+  const lines = [headers.join(','), ...rows.map(v=>[v.code,v.name,v.cat,v.pm,v.tel,v.grade,v.score,v.expire,v.status,v.biz,v.ceo,v.addr].join(','))];
+  const blob = new Blob(['\uFEFF'+lines.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'PASECO_협력사목록_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast((selected.length||rows.length) + '개사 내보내기 완료');
+}
+
+/* ── 드래그&드롭 업로드 ── */
+function initDropZone() {
+  const banner = document.getElementById('xl-banner');
+  if (!banner) return;
+  banner.addEventListener('dragover', e => { e.preventDefault(); banner.classList.add('xl-drop-active'); });
+  banner.addEventListener('dragleave', () => banner.classList.remove('xl-drop-active'));
+  banner.addEventListener('drop', e => {
+    e.preventDefault();
+    banner.classList.remove('xl-drop-active');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    const showResult = (msg, type) => {
+      const el = document.getElementById('xl-result');
+      el.className = 'xl-result-bar xl-result-' + type;
+      document.getElementById('xl-result-text').textContent = msg;
+      el.style.display = 'flex';
+    };
+    if (ext === 'csv') {
+      const r = new FileReader();
+      r.onload = ev => processSheetData(ev.target.result, true, file.name, showResult);
+      r.readAsText(file,'UTF-8');
+    } else {
+      const r = new FileReader();
+      r.onload = ev => {
+        try {
+          const wb = XLSX.read(ev.target.result,{type:'binary',cellDates:true});
+          processSheetData(XLSX.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]]), true, file.name, showResult);
+        } catch(err) { showResult('오류: '+err.message,'err'); }
+      };
+      r.readAsBinaryString(file);
+    }
+  });
+}
+
+/* ── 초기화 ── */
+document.addEventListener('DOMContentLoaded', () => {
+  vFiltered = [...vendorStore];
+  renderVendorTable();
+  updateVendorBadges();
+  syncVendorDropdowns();
+  setTimeout(initDropZone, 500);
+});
+
+</script>
+</body>
+</html>
