@@ -1011,9 +1011,9 @@ tbody tr:hover td { background: var(--bg); }
       <div class="tbl-wrap"><table>
         <thead><tr><th>과제명</th><th>담당</th><th>진행률</th><th>상태</th></tr></thead>
         <tbody>
-          <tr><td>외관검사 자동화</td><td>박지호</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:65%;background:var(--blue)"></div></div><span style="font-size:12px;font-weight:500">65%</span></div></td><td><span class="badge b-blue">진행</span></td></tr>
-          <tr><td>불량유형 DB 구축</td><td>김규식</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:90%;background:var(--blue)"></div></div><span style="font-size:12px;font-weight:500">90%</span></div></td><td><span class="badge b-blue">진행</span></td></tr>
-          <tr><td>업체 품질교육 체계화</td><td>박지호</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:100%;background:var(--green)"></div></div><span style="font-size:12px;font-weight:500">100%</span></div></td><td><span class="badge b-green">완료</span></td></tr>
+          <tr><td>PACKING CASE 외관 품질 AI 도입</td><td>박지호</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:45%;background:var(--blue)"></div></div><span style="font-size:12px;font-weight:500">45%</span></div></td><td><span class="badge b-blue">진행</span></td></tr>
+          <tr><td>협력사 DB 구축</td><td>최지영</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:50%;background:var(--blue)"></div></div><span style="font-size:12px;font-weight:500">50%</span></div></td><td><span class="badge b-blue">진행</span></td></tr>
+          <tr><td>수입검사 통합관리 Management</td><td>김규식</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:40%;background:var(--blue)"></div></div><span style="font-size:12px;font-weight:500">40%</span></div></td><td><span class="badge b-blue">진행</span></td></tr>
         </tbody>
       </table></div>
     </div>
@@ -1640,6 +1640,12 @@ function rowCa(d){
 function rowIp(d){
   return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>${d.mmdd}</td><td>${d.author||'—'}</td><td><span class="tag">${d.cat}</span></td><td>${d.title}</td><td>${d.effect||'—'}</td><td><span class="badge b-blue">제안</span></td>`;
 }
+function rowQuality(d){
+  const statusMap = {'진행':'b-blue','완료':'b-green','보류':'b-amber'};
+  const barColor = d.status === '완료' ? 'var(--green)' : 'var(--blue)';
+  const pct = Math.max(0, Math.min(100, parseInt(d.progress) || 0));
+  return `<td>${d.title}${attachHtml(d)}${editHtml(d)}</td><td>${d.owner||'—'}</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:${pct}%;background:${barColor}"></div></div><span style="font-size:12px;font-weight:500">${pct}%</span></div></td><td><span class="badge ${statusMap[d.status]||'b-blue'}">${d.status||'진행'}</span></td>`;
+}
 function rowEcn(d){
   return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td><span class="tag">${d.ctype}</span></td><td>${d.cdesc}</td><td>${d.appDate||'—'}</td><td><span class="badge b-amber">검토필요</span></td>`;
 }
@@ -1656,6 +1662,7 @@ const RECORD_TYPES = {
   nc_records:                { rowFn: rowNc,  tbody: '#sec-nonconf table tbody' },
   ca_records:                { rowFn: rowCa,  tbody: '#sec-caplan .card:first-child table tbody' },
   improve_records:           { rowFn: rowIp,  tbody: '#sec-improve table tbody' },
+  quality_records:           { rowFn: rowQuality, tbody: '#sec-quality table tbody' },
   ecn_records:                { rowFn: rowEcn, tbody: '#sec-change table tbody' },
   supplier_records:          { rowFn: rowSup, tbody: '#sec-sup-list table tbody' },
   improve_request_records:   { rowFn: rowIr,  tbody: '#sec-sup-req table tbody' },
@@ -1700,6 +1707,7 @@ const EDIT_FIELD_LABELS = {
   dtype:'불량유형', dqty:'불량수량', sev:'심각도', due:'기한',
   ncRef:'부적합번호', resp:'담당자',
   cat:'분류', title:'제목', effect:'기대효과', author:'제안자',
+  owner:'담당', progress:'진행률(%)', status:'상태',
   ctype:'변경유형', cdesc:'변경내용', appDate:'적용일',
   name:'업체명', biz:'사업자번호', ceo:'대표자', pm:'담당자', tel:'연락처',
   rtype:'요청유형', content:'내용'
@@ -1880,6 +1888,26 @@ async function submitReg(){
     toast(`개선 제안 등록 완료: ${seq}`);
   }
 
+  else if(page === 'quality'){
+    const title    = document.getElementById('q-f-title')?.value || '';
+    const owner    = document.getElementById('q-f-owner')?.value || '';
+    const progress = document.getElementById('q-f-progress')?.value || '0';
+    const status   = document.getElementById('q-f-status')?.value || '진행';
+    if(!title){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('과제명을 입력하세요.'); return; }
+    const attachments = await _uploadAttachments('quality_' + Date.now());
+    const d = { title, owner, progress, status, attachments };
+    const newId = await _saveRecordToCloud('quality_records', d);
+    d._docId = newId; d._col = 'quality_records';
+    const tbody = document.querySelector('#sec-quality table tbody');
+    if(tbody){
+      const tr = document.createElement('tr');
+      tr.dataset.docid = newId; tr.dataset.col = 'quality_records';
+      tr.innerHTML = rowQuality(d);
+      tbody.prepend(tr);
+    }
+    toast(`품질 개선 과제 등록 완료: ${title}`);
+  }
+
   else if(page === 'change'){
     const inputs = document.querySelectorAll('#reg-form-content input, #reg-form-content select, #reg-form-content textarea');
     const vendor = inputs[0]?.value || '';
@@ -1966,6 +1994,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const n2 = await _loadCloudRecords('nc_records', '#sec-nonconf table tbody', rowNc);
     const n3 = await _loadCloudRecords('ca_records', '#sec-caplan .card:first-child table tbody', rowCa);
     const n4 = await _loadCloudRecords('improve_records', '#sec-improve table tbody', rowIp);
+    await _loadCloudRecords('quality_records', '#sec-quality table tbody', rowQuality);
     const n5 = await _loadCloudRecords('ecn_records', '#sec-change table tbody', rowEcn);
     const n6 = await _loadCloudRecords('supplier_records', '#sec-sup-list table tbody', rowSup);
     const n7 = await _loadCloudRecords('improve_request_records', '#sec-sup-req table tbody', rowIr);
@@ -1981,6 +2010,7 @@ const regForms = {
   'nonconf': regFormNC,
   'caplan': regFormCA,
   'improve': regFormIP,
+  'quality': regFormQuality,
   'change': regFormECN,
   'sup-dash': regFormVendor, 'sup-list': regFormVendor,
   'sup-audit': regFormAudit,
@@ -2083,6 +2113,13 @@ function regFormIP(){ return `<div class="fgrid">
   <div class="fg full"><label>기대 효과</label><input type="text" placeholder="예) 검사시간 30% 단축"></div>
   <div class="fg"><label>제안자</label><input type="text" placeholder="이름"></div>
   <div class="fg full"><label>상세 내용</label><textarea placeholder="제안 내용 상세 기술..."></textarea></div>
+</div>`; }
+
+function regFormQuality(){ return `<div class="fgrid">
+  <div class="fg full"><label>과제명</label><input id="q-f-title" type="text" placeholder="예) 외관검사 자동화"></div>
+  <div class="fg"><label>담당</label><input id="q-f-owner" type="text" placeholder="담당자명"></div>
+  <div class="fg"><label>진행률(%)</label><input id="q-f-progress" type="number" min="0" max="100" placeholder="0"></div>
+  <div class="fg full"><label>상태</label><select id="q-f-status"><option>진행</option><option>완료</option><option>보류</option></select></div>
 </div>`; }
 
 function regFormECN(){ return `<div class="fgrid">
