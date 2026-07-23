@@ -1005,30 +1005,12 @@ tbody tr:hover td { background: var(--bg); }
 
 <!-- ════ 품질개선 ════ -->
 <div class="sec" id="sec-quality">
-  <div class="row2">
-    <div class="card">
-      <div class="card-head"><div class="card-title">품질 개선 과제</div></div>
-      <div class="tbl-wrap"><table>
-        <thead><tr><th>과제명</th><th>담당</th><th>진행률</th><th>상태</th></tr></thead>
-        <tbody>
-          <tr><td>PACKING CASE 외관 품질 AI 도입</td><td>박지호</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:45%;background:var(--blue)"></div></div><span style="font-size:12px;font-weight:500">45%</span></div></td><td><span class="badge b-blue">진행</span></td></tr>
-          <tr><td>협력사 DB 구축</td><td>최지영</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:50%;background:var(--blue)"></div></div><span style="font-size:12px;font-weight:500">50%</span></div></td><td><span class="badge b-blue">진행</span></td></tr>
-          <tr><td>수입검사 통합관리 Management</td><td>김규식</td><td><div style="display:flex;align-items:center;gap:7px"><div class="pbar" style="width:70px"><div class="pfill" style="width:40%;background:var(--blue)"></div></div><span style="font-size:12px;font-weight:500">40%</span></div></td><td><span class="badge b-blue">진행</span></td></tr>
-        </tbody>
-      </table></div>
-    </div>
-    <div class="card">
-      <div class="card-head"><div class="card-title">월별 합격률 추이</div></div>
-      <div class="bar-chart">
-        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">88%</div><div class="bar-track"><div class="bar-fill" style="height:80%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">11월</div></div>
-        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">91%</div><div class="bar-track"><div class="bar-fill" style="height:85%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">12월</div></div>
-        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">89%</div><div class="bar-track"><div class="bar-fill" style="height:82%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">1월</div></div>
-        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">93%</div><div class="bar-track"><div class="bar-fill" style="height:88%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">2월</div></div>
-        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">92%</div><div class="bar-track"><div class="bar-fill" style="height:87%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">3월</div></div>
-        <div class="bar-col"><div class="bar-num" style="color:var(--green);font-weight:600">94%</div><div class="bar-track"><div class="bar-fill" style="height:92%;background:var(--green-bg);border:1px solid var(--green)"></div></div><div class="bar-lbl" style="font-weight:600">4월</div></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--text2)"><span>목표: 95%</span><span style="color:var(--green);font-weight:600">현재: 94.3% ↑</span></div>
-    </div>
+  <div class="card">
+    <div class="card-head"><div class="card-title">품질 개선 과제</div></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>과제명</th><th>담당</th><th>진행률</th><th>상태</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
   </div>
 </div>
 
@@ -1987,6 +1969,18 @@ async function submitReg(){
   closeRegModal();
 }
 
+/* ── 최초 1회: 품질 개선 과제 기본값을 Firebase에 심어서 수정 가능한 실제 데이터로 전환 ── */
+async function _seedDefaultQualityTasks(){
+  const defaults = [
+    { title: 'PACKING CASE 외관 품질 AI 도입', owner: '박지호', progress: '45', status: '진행' },
+    { title: '협력사 DB 구축', owner: '최지영', progress: '50', status: '진행' },
+    { title: '수입검사 통합관리 Management', owner: '김규식', progress: '40', status: '진행' },
+  ];
+  for (const t of defaults) {
+    await _saveRecordToCloud('quality_records', t);
+  }
+}
+
 /* ── 페이지 로드 시 Firebase에 저장된 기존 데이터를 불러와 각 표에 채움 ── */
 document.addEventListener('DOMContentLoaded', async () => {
   try {
@@ -1994,7 +1988,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const n2 = await _loadCloudRecords('nc_records', '#sec-nonconf table tbody', rowNc);
     const n3 = await _loadCloudRecords('ca_records', '#sec-caplan .card:first-child table tbody', rowCa);
     const n4 = await _loadCloudRecords('improve_records', '#sec-improve table tbody', rowIp);
-    await _loadCloudRecords('quality_records', '#sec-quality table tbody', rowQuality);
+    const qCount = await _loadCloudRecords('quality_records', '#sec-quality table tbody', rowQuality);
+    if (qCount === 0) {
+      await _seedDefaultQualityTasks();
+      await _loadCloudRecords('quality_records', '#sec-quality table tbody', rowQuality);
+    }
     const n5 = await _loadCloudRecords('ecn_records', '#sec-change table tbody', rowEcn);
     const n6 = await _loadCloudRecords('supplier_records', '#sec-sup-list table tbody', rowSup);
     const n7 = await _loadCloudRecords('improve_request_records', '#sec-sup-req table tbody', rowIr);
