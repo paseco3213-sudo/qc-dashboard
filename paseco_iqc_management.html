@@ -1005,11 +1005,24 @@ tbody tr:hover td { background: var(--bg); }
 
 <!-- ════ 품질개선 ════ -->
 <div class="sec" id="sec-quality">
-  <div class="card">
-    <div class="card-head"><div class="card-title">품질 개선 과제</div></div>
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-head" style="display:flex;align-items:center;justify-content:space-between">
+      <div class="card-title">AI 활용 DB 구축 과제</div>
+      <button class="btn btn-sm" onclick="openQualityRegModal('quality_records')">+ 추가</button>
+    </div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>과제명</th><th>담당</th><th>진행률</th><th>상태</th></tr></thead>
-      <tbody></tbody>
+      <tbody id="quality-tbody-1"></tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <div class="card-head" style="display:flex;align-items:center;justify-content:space-between">
+      <div class="card-title">품질 개선 과제</div>
+      <button class="btn btn-sm" onclick="openQualityRegModal('quality_records2')">+ 추가</button>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>과제명</th><th>담당</th><th>진행률</th><th>상태</th></tr></thead>
+      <tbody id="quality-tbody-2"></tbody>
     </table></div>
   </div>
 </div>
@@ -1644,7 +1657,8 @@ const RECORD_TYPES = {
   nc_records:                { rowFn: rowNc,  tbody: '#sec-nonconf table tbody' },
   ca_records:                { rowFn: rowCa,  tbody: '#sec-caplan .card:first-child table tbody' },
   improve_records:           { rowFn: rowIp,  tbody: '#sec-improve table tbody' },
-  quality_records:           { rowFn: rowQuality, tbody: '#sec-quality table tbody' },
+  quality_records:           { rowFn: rowQuality, tbody: '#quality-tbody-1' },
+  quality_records2:          { rowFn: rowQuality, tbody: '#quality-tbody-2' },
   ecn_records:                { rowFn: rowEcn, tbody: '#sec-change table tbody' },
   supplier_records:          { rowFn: rowSup, tbody: '#sec-sup-list table tbody' },
   improve_request_records:   { rowFn: rowIr,  tbody: '#sec-sup-req table tbody' },
@@ -1876,18 +1890,20 @@ async function submitReg(){
     const progress = document.getElementById('q-f-progress')?.value || '0';
     const status   = document.getElementById('q-f-status')?.value || '진행';
     if(!title){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('과제명을 입력하세요.'); return; }
-    const attachments = await _uploadAttachments('quality_' + Date.now());
+    const targetCol = qualityTarget || 'quality_records';
+    const targetTbody = targetCol === 'quality_records2' ? '#quality-tbody-2' : '#quality-tbody-1';
+    const attachments = await _uploadAttachments(targetCol + '_' + Date.now());
     const d = { title, owner, progress, status, attachments };
-    const newId = await _saveRecordToCloud('quality_records', d);
-    d._docId = newId; d._col = 'quality_records';
-    const tbody = document.querySelector('#sec-quality table tbody');
+    const newId = await _saveRecordToCloud(targetCol, d);
+    d._docId = newId; d._col = targetCol;
+    const tbody = document.querySelector(targetTbody);
     if(tbody){
       const tr = document.createElement('tr');
-      tr.dataset.docid = newId; tr.dataset.col = 'quality_records';
+      tr.dataset.docid = newId; tr.dataset.col = targetCol;
       tr.innerHTML = rowQuality(d);
       tbody.prepend(tr);
     }
-    toast(`품질 개선 과제 등록 완료: ${title}`);
+    toast(`과제 등록 완료: ${title}`);
   }
 
   else if(page === 'change'){
@@ -1988,11 +2004,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const n2 = await _loadCloudRecords('nc_records', '#sec-nonconf table tbody', rowNc);
     const n3 = await _loadCloudRecords('ca_records', '#sec-caplan .card:first-child table tbody', rowCa);
     const n4 = await _loadCloudRecords('improve_records', '#sec-improve table tbody', rowIp);
-    const qCount = await _loadCloudRecords('quality_records', '#sec-quality table tbody', rowQuality);
+    const qCount = await _loadCloudRecords('quality_records', '#quality-tbody-1', rowQuality);
     if (qCount === 0) {
       await _seedDefaultQualityTasks();
-      await _loadCloudRecords('quality_records', '#sec-quality table tbody', rowQuality);
+      await _loadCloudRecords('quality_records', '#quality-tbody-1', rowQuality);
     }
+    await _loadCloudRecords('quality_records2', '#quality-tbody-2', rowQuality);
     const n5 = await _loadCloudRecords('ecn_records', '#sec-change table tbody', rowEcn);
     const n6 = await _loadCloudRecords('supplier_records', '#sec-sup-list table tbody', rowSup);
     const n7 = await _loadCloudRecords('improve_request_records', '#sec-sup-req table tbody', rowIr);
@@ -2020,6 +2037,16 @@ function openRegModal(){
   document.getElementById('reg-modal-title').textContent = regTitles[currentPage] || '신규 등록';
   const formFn = regForms[currentPage];
   document.getElementById('reg-form-content').innerHTML = formFn ? formFn() : regFormDefault();
+  document.getElementById('reg-modal').classList.add('open');
+}
+
+let qualityTarget = 'quality_records'; // 어느 품질 개선 박스에 등록할지 (기본: AI 활용 DB 구축 과제)
+function openQualityRegModal(targetCollection){
+  qualityTarget = targetCollection;
+  currentPage = 'quality';
+  const label = targetCollection === 'quality_records2' ? '품질 개선 과제 등록' : 'AI 활용 DB 구축 과제 등록';
+  document.getElementById('reg-modal-title').textContent = label;
+  document.getElementById('reg-form-content').innerHTML = regFormQuality();
   document.getElementById('reg-modal').classList.add('open');
 }
 
