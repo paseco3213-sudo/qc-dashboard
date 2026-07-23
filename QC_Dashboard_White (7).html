@@ -202,6 +202,23 @@ tbody tr:hover td { background: var(--blue-l); }
 .rate-mid  { color: var(--amber); font-weight: 600; }
 .rate-low  { color: var(--green); }
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-storage-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyD-WHWS9bdmxczsi-UcR4MnGOwacA0gNcg",
+    authDomain: "paseco-iqc-2026.firebaseapp.com",
+    projectId: "paseco-iqc-2026",
+    storageBucket: "paseco-iqc-2026.firebasestorage.app",
+    messagingSenderId: "619205720185",
+    appId: "1:619205720185:web:7d4d19885d35bf78b5fca8",
+    measurementId: "G-W9XDF2R9K1"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const fbDb = firebase.firestore();
+  const fbStorage = firebase.storage();
+</script>
 </head>
 <body>
 <div class="shell">
@@ -1084,11 +1101,12 @@ function applyUpload() {
   }
 
   // ① 월별로 분류
+  const newlyAdded = []; // 실제로 새로 추가된 행만 모아서 Firebase에 저장할 때 사용
   pending.forEach(r => {
     const key = detectMonth(r) || '미분류';
     if (!DATA[key]) DATA[key] = [];
     const dup = DATA[key].some(x => x.id===r.id && x.partner===r.partner && String(x.date)===String(r.date));
-    if (!dup) DATA[key].push({...r, month: key});
+    if (!dup) { const row = {...r, month: key}; DATA[key].push(row); newlyAdded.push(row); }
   });
 
   // ② 잔여 업로드/미분류 키 정리
@@ -1098,8 +1116,11 @@ function applyUpload() {
       const key = detectMonth(r);
       if (key) {
         if (!DATA[key]) DATA[key] = [];
-        if (!DATA[key].some(x => x.id===r.id && x.partner===r.partner && String(x.date)===String(r.date)))
-          DATA[key].push({...r, month: key});
+        if (!DATA[key].some(x => x.id===r.id && x.partner===r.partner && String(x.date)===String(r.date))) {
+          const row = {...r, month: key};
+          DATA[key].push(row);
+          newlyAdded.push(row);
+        }
       }
     });
     delete DATA[badKey];
@@ -1119,6 +1140,46 @@ function applyUpload() {
   const summary = VALID_MONTHS.filter(m=>DATA[m]&&DATA[m].length).map(m=>m+' '+DATA[m].length+'건').join(' | ');
   closeModal();
   toast('✅ ' + cnt + '건 반영 완료 — ' + summary);
+
+  // Firebase에 신규 행 저장 — 새로고침해도, 다른 팀원 접속해도 유지됨
+  _saveRowsToCloud(newlyAdded);
+}
+
+// ── 업로드된 데이터를 Firebase(Firestore)에 저장 ──
+async function _saveRowsToCloud(rows) {
+  if (!rows || !rows.length) return;
+  try {
+    const CHUNK = 400; // Firestore batch 최대 500건 제한 대비 여유 있게 자름
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const batch = fbDb.batch();
+      rows.slice(i, i + CHUNK).forEach(r => {
+        const ref = fbDb.collection('qc_rows').doc();
+        batch.set(ref, Object.assign({}, r, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
+      });
+      await batch.commit();
+    }
+  } catch (err) {
+    console.error('QC 데이터 클라우드 저장 실패', err);
+  }
+}
+
+// ── 페이지 로드 시 Firebase에 저장된 업로드 데이터를 불러와 DATA에 병합 ──
+async function _loadCloudRows() {
+  try {
+    const snap = await fbDb.collection('qc_rows').orderBy('createdAt', 'asc').get();
+    let count = 0;
+    snap.docs.forEach(doc => {
+      const r = doc.data();
+      const monthKey = r.month || '미분류';
+      if (!DATA[monthKey]) DATA[monthKey] = [];
+      const dup = DATA[monthKey].some(x => x.id === r.id && x.partner === r.partner && String(x.date) === String(r.date));
+      if (!dup) { DATA[monthKey].push(r); count++; }
+    });
+    return count;
+  } catch (err) {
+    console.error('QC 데이터 클라우드 로드 실패', err);
+    return 0;
+  }
 }
 
 // 업로드된 월이 탭에 없으면 자동 추가
@@ -1179,6 +1240,16 @@ function doExportCSV() {
 // ═══ Init ═══
 filtered = getAllRows();
 renderMonthlyView();
+_loadCloudRows().then(count => {
+  if (count > 0) {
+    filtered = getAllRows();
+    syncMonthTabs();
+    renderMonthlyView();
+    populateListFilters();
+    renderTable();
+    renderPartner();
+  }
+});
 </script>
 </body>
 </html>
