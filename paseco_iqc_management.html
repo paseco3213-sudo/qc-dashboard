@@ -1446,6 +1446,21 @@ tbody tr:hover td { background: var(--bg); }
   </div>
 </div>
 
+<!-- 등록된 항목 수정 모달 -->
+<div class="overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">항목 수정</div>
+      <button class="x-btn" onclick="closeEditModal()">×</button>
+    </div>
+    <div id="edit-form-content" class="fgrid"></div>
+    <div style="margin-top:18px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="closeEditModal()">취소</button>
+      <button class="btn btn-primary" id="edit-submit-btn" onclick="saveEditRecord()">저장</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const titles = {
   'iqc-dash':'수입검사 현황 요약','incoming':'입고 검사','nonconf':'부적합 관리','caplan':'대책서',
@@ -1531,7 +1546,7 @@ const today = new Date();
 document.getElementById('today-date').textContent = `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
 
 /* ── 등록 카운터 ── */
-let iqcSeq = 7, ncSeq = 5, caSeq = 4, ipSeq = 5, ecnSeq = 5, irSeq = 5, vSeq = 7;
+let iqcSeq = 7, ncSeq = 5, caSeq = 4, ipSeq = 1, ecnSeq = 5, irSeq = 5, vSeq = 7;
 function pad2(n){ return String(n).padStart(2,'0'); }
 function nowYM(){ return '2604'; }
 
@@ -1599,44 +1614,61 @@ async function _uploadAttachments(idPrefix){
   return results;
 }
 
-/* ── 첨부파일 링크 렌더링 (각 행 템플릿에서 공용으로 사용) ── */
+/* ── 첨부파일 링크 + 수정 버튼 렌더링 (각 행 템플릿에서 공용으로 사용) ── */
 function attachHtml(d){
   if (!d.attachments || !d.attachments.length) return '';
   return d.attachments.map(a =>
     `<a href="${a.url}" target="_blank" rel="noopener" title="${a.name}" style="margin-left:5px;font-size:12px;text-decoration:none">📎</a>`
   ).join('');
 }
+function editHtml(d){
+  if (!d._docId || !d._col) return '';
+  return `<button type="button" onclick="event.stopPropagation();openEditRecord('${d._col}','${d._docId}')" title="수정" style="margin-left:5px;background:none;border:none;cursor:pointer;font-size:12px;padding:0;vertical-align:middle">✏️</button>`;
+}
 
 /* ── 등록 데이터를 화면 표에 그려주는 행(row) 템플릿 — 신규 등록 시점과, 새로고침 후 Firebase에서 불러올 때 공용으로 사용 ── */
 function rowIqc(d){
-  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td>${d.pname}</td><td>${d.inQty}</td><td>${d.inQty}</td><td>${d.ncQty}</td><td>${resultBadge(d.result)}</td><td>${d.inspector}</td>`;
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td>${d.pname}</td><td>${d.inQty}</td><td>${d.inQty}</td><td>${d.ncQty}</td><td>${resultBadge(d.result)}</td><td>${d.inspector}</td>`;
 }
 function rowNc(d){
   const sevMap = {'심각':'b-red','보통':'b-gray','경미':'b-amber'};
-  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td>${d.dtype}</td><td>${d.dqty}</td><td><span class="badge ${sevMap[d.sev]||'b-gray'}">${d.sev}</span></td><td>${d.due||'—'}</td><td><span class="badge b-amber">미처리</span></td>`;
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td>${d.dtype}</td><td>${d.dqty}</td><td><span class="badge ${sevMap[d.sev]||'b-gray'}">${d.sev}</span></td><td>${d.due||'—'}</td><td><span class="badge b-amber">미처리</span></td>`;
 }
 function rowCa(d){
-  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>—</td><td>${d.ncRef}</td><td>${d.mmdd}</td><td>${d.due||'—'}</td><td><span class="badge b-amber">검토중</span></td>`;
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>—</td><td>${d.ncRef}</td><td>${d.mmdd}</td><td>${d.due||'—'}</td><td><span class="badge b-amber">검토중</span></td>`;
 }
 function rowIp(d){
-  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>${d.mmdd}</td><td>${d.author||'—'}</td><td><span class="tag">${d.cat}</span></td><td>${d.title}</td><td>${d.effect||'—'}</td><td><span class="badge b-blue">제안</span></td>`;
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>${d.mmdd}</td><td>${d.author||'—'}</td><td><span class="tag">${d.cat}</span></td><td>${d.title}</td><td>${d.effect||'—'}</td><td><span class="badge b-blue">제안</span></td>`;
 }
 function rowEcn(d){
-  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td><span class="tag">${d.ctype}</span></td><td>${d.cdesc}</td><td>${d.appDate||'—'}</td><td><span class="badge b-amber">검토필요</span></td>`;
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td><span class="tag">${d.ctype}</span></td><td>${d.cdesc}</td><td>${d.appDate||'—'}</td><td><span class="badge b-amber">검토필요</span></td>`;
 }
 function rowSup(d){
-  return `<td style="color:var(--text2);font-family:'IBM Plex Mono',monospace;font-size:12px">${d.code}${attachHtml(d)}</td><td><strong>${d.name}</strong></td><td><span class="tag">${d.cat}</span></td><td>${d.pm}</td><td>${d.tel}</td><td><span class="badge b-gray">심사중</span></td><td>—</td><td>—</td><td><span class="badge b-blue">등록중</span></td><td><button class="btn btn-sm" onclick="openDetail('${d.name}')">상세</button></td>`;
+  return `<td style="color:var(--text2);font-family:'IBM Plex Mono',monospace;font-size:12px">${d.code}${attachHtml(d)}${editHtml(d)}</td><td><strong>${d.name}</strong></td><td><span class="tag">${d.cat}</span></td><td>${d.pm}</td><td>${d.tel}</td><td><span class="badge b-gray">심사중</span></td><td>—</td><td>—</td><td><span class="badge b-blue">등록중</span></td><td><button class="btn btn-sm" onclick="openDetail('${d.name}')">상세</button></td>`;
 }
 function rowIr(d){
-  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>${d.vendor}</td><td><span class="tag">${d.rtype}</span></td><td>${d.content}</td><td>${d.mmdd}</td><td>${d.due||'—'}</td><td><span class="badge b-blue">요청</span></td>`;
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>${d.vendor}</td><td><span class="tag">${d.rtype}</span></td><td>${d.content}</td><td>${d.mmdd}</td><td>${d.due||'—'}</td><td><span class="badge b-blue">요청</span></td>`;
 }
+
+/* ── 컬렉션 ↔ 행 템플릿/표 매핑 (불러오기·수정 시 공용으로 사용) ── */
+const RECORD_TYPES = {
+  iqc_records:              { rowFn: rowIqc, tbody: '#sec-incoming table tbody' },
+  nc_records:                { rowFn: rowNc,  tbody: '#sec-nonconf table tbody' },
+  ca_records:                { rowFn: rowCa,  tbody: '#sec-caplan .card:first-child table tbody' },
+  improve_records:           { rowFn: rowIp,  tbody: '#sec-improve table tbody' },
+  ecn_records:                { rowFn: rowEcn, tbody: '#sec-change table tbody' },
+  supplier_records:          { rowFn: rowSup, tbody: '#sec-sup-list table tbody' },
+  improve_request_records:   { rowFn: rowIr,  tbody: '#sec-sup-req table tbody' },
+};
 
 /* ── Firebase 저장/불러오기 공용 함수 ── */
 async function _saveRecordToCloud(collectionName, data){
   try{
-    await fbDb.collection(collectionName).add(Object.assign({}, data, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
+    const ref = await fbDb.collection(collectionName).add(Object.assign({}, data, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
+    return ref.id;
   } catch(err){
     console.error(collectionName + ' 저장 실패', err);
+    return null;
   }
 }
 async function _loadCloudRecords(collectionName, tbodySelector, rowFn){
@@ -1645,14 +1677,90 @@ async function _loadCloudRecords(collectionName, tbodySelector, rowFn){
     const tbody = document.querySelector(tbodySelector);
     if(!tbody) return 0;
     [...snap.docs].reverse().forEach(doc => {
+      const d = doc.data();
+      d._docId = doc.id;
+      d._col = collectionName;
       const tr = document.createElement('tr');
-      tr.innerHTML = rowFn(doc.data());
+      tr.dataset.docid = doc.id;
+      tr.dataset.col = collectionName;
+      tr.innerHTML = rowFn(d);
       tbody.prepend(tr);
     });
     return snap.size;
   } catch(err){
     console.error(collectionName + ' 로드 실패', err);
     return 0;
+  }
+}
+
+/* ── 등록된 항목 수정 ── */
+const EDIT_FIELD_LABELS = {
+  seq:'번호', code:'코드', mmdd:'날짜', vendor:'업체명', pnum:'품번', pname:'품명',
+  inQty:'입고수량', ncQty:'불량수량', result:'검사결과', inspector:'검사자',
+  dtype:'불량유형', dqty:'불량수량', sev:'심각도', due:'기한',
+  ncRef:'부적합번호', resp:'담당자',
+  cat:'분류', title:'제목', effect:'기대효과', author:'제안자',
+  ctype:'변경유형', cdesc:'변경내용', appDate:'적용일',
+  name:'업체명', biz:'사업자번호', ceo:'대표자', pm:'담당자', tel:'연락처',
+  rtype:'요청유형', content:'내용'
+};
+const EDIT_SKIP_FIELDS = ['createdAt', 'attachments', '_docId', '_col'];
+let _editCtx = null;
+
+async function openEditRecord(col, docId){
+  try{
+    const doc = await fbDb.collection(col).doc(docId).get();
+    if(!doc.exists){ toast('문서를 찾을 수 없습니다.'); return; }
+    const data = doc.data();
+    _editCtx = { col, docId };
+    const wrap = document.getElementById('edit-form-content');
+    wrap.innerHTML = Object.keys(data).filter(k => !EDIT_SKIP_FIELDS.includes(k)).map(k => {
+      const label = EDIT_FIELD_LABELS[k] || k;
+      const val = (data[k] ?? '').toString().replace(/"/g, '&quot;');
+      return `<div class="fg"><label>${label}</label><input type="text" data-field="${k}" value="${val}"></div>`;
+    }).join('');
+    if (data.attachments && data.attachments.length){
+      wrap.innerHTML += `<div class="fg full"><label>첨부파일 (읽기 전용)</label><div style="font-size:12px">${
+        data.attachments.map(a => `<a href="${a.url}" target="_blank" rel="noopener" style="margin-right:10px">📎 ${a.name}</a>`).join('')
+      }</div></div>`;
+    }
+    document.getElementById('edit-modal').classList.add('open');
+  } catch(err){
+    console.error('문서 조회 실패', err);
+    toast('불러오기 실패');
+  }
+}
+
+function closeEditModal(){
+  document.getElementById('edit-modal').classList.remove('open');
+  _editCtx = null;
+}
+
+async function saveEditRecord(){
+  if (!_editCtx) return;
+  const btn = document.getElementById('edit-submit-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
+  const inputs = document.querySelectorAll('#edit-form-content input[data-field]');
+  const updates = {};
+  inputs.forEach(inp => { updates[inp.dataset.field] = inp.value; });
+  try {
+    await fbDb.collection(_editCtx.col).doc(_editCtx.docId).update(updates);
+    const tr = document.querySelector(`tr[data-docid="${_editCtx.docId}"][data-col="${_editCtx.col}"]`);
+    const typeInfo = RECORD_TYPES[_editCtx.col];
+    if (tr && typeInfo) {
+      const fresh = await fbDb.collection(_editCtx.col).doc(_editCtx.docId).get();
+      const d = fresh.data();
+      d._docId = _editCtx.docId;
+      d._col = _editCtx.col;
+      tr.innerHTML = typeInfo.rowFn(d);
+    }
+    toast('✅ 수정 완료');
+    closeEditModal();
+  } catch(err){
+    console.error('수정 저장 실패', err);
+    toast('❌ 저장 실패');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '저장'; }
   }
 }
 
@@ -1678,23 +1786,27 @@ async function submitReg(){
     const mmdd = date ? date.slice(5).replace('-','.') : '—';
     const attachments = await _uploadAttachments(seq);
     const d = { seq, mmdd, vendor, pnum, pname, inQty, ncQty, result, inspector, attachments };
+    const newId = await _saveRecordToCloud('iqc_records', d);
+    d._docId = newId; d._col = 'iqc_records';
     const tbody = document.querySelector('#sec-incoming table tbody');
     if(tbody){
       const tr = document.createElement('tr');
+      tr.dataset.docid = newId; tr.dataset.col = 'iqc_records';
       tr.innerHTML = rowIqc(d);
       tbody.prepend(tr);
     }
-    _saveRecordToCloud('iqc_records', d);
     if(result === '불합격'){
       const ncSeqVal = 'NC-' + nowYM() + '-' + pad2(ncSeq++);
       const d2 = { seq: ncSeqVal, mmdd, vendor, pnum, dtype: ncDesc||'외관불량', dqty: ncQty, sev: '심각', due: '' };
+      const ncId = await _saveRecordToCloud('nc_records', d2);
+      d2._docId = ncId; d2._col = 'nc_records';
       const ncTbody = document.querySelector('#sec-nonconf table tbody');
       if(ncTbody){
         const tr2 = document.createElement('tr');
+        tr2.dataset.docid = ncId; tr2.dataset.col = 'nc_records';
         tr2.innerHTML = rowNc(d2);
         ncTbody.prepend(tr2);
       }
-      _saveRecordToCloud('nc_records', d2);
       toast('⚠️ 불합격: ' + seq + ' → 부적합 ' + ncSeqVal + ' 자동 생성');
     } else {
       toast('입고검사 등록 완료: ' + seq);
@@ -1713,13 +1825,15 @@ async function submitReg(){
     const seq  = 'NC-' + nowYM() + '-' + pad2(ncSeq++);
     const attachments = await _uploadAttachments(seq);
     const d = { seq, mmdd: document.getElementById('today-date').textContent.slice(5), vendor, pnum, dtype, dqty, sev, due, attachments };
+    const newId = await _saveRecordToCloud('nc_records', d);
+    d._docId = newId; d._col = 'nc_records';
     const tbody = document.querySelector('#sec-nonconf table tbody');
     if(tbody){
       const tr = document.createElement('tr');
+      tr.dataset.docid = newId; tr.dataset.col = 'nc_records';
       tr.innerHTML = rowNc(d);
       tbody.prepend(tr);
     }
-    _saveRecordToCloud('nc_records', d);
     toast(`부적합 등록 완료: ${seq}`);
   }
 
@@ -1732,13 +1846,15 @@ async function submitReg(){
     const seq  = 'CA-' + nowYM() + '-' + pad2(caSeq++);
     const attachments = await _uploadAttachments(seq);
     const d = { seq, mmdd: document.getElementById('today-date').textContent.slice(5), ncRef, due, resp, attachments };
+    const newId = await _saveRecordToCloud('ca_records', d);
+    d._docId = newId; d._col = 'ca_records';
     const tbody = document.querySelector('#sec-caplan .card:first-child table tbody');
     if(tbody){
       const tr = document.createElement('tr');
+      tr.dataset.docid = newId; tr.dataset.col = 'ca_records';
       tr.innerHTML = rowCa(d);
       tbody.prepend(tr);
     }
-    _saveRecordToCloud('ca_records', d);
     toast(`대책서 등록 완료: ${seq}`);
   }
 
@@ -1752,13 +1868,15 @@ async function submitReg(){
     const seq  = 'IQC-' + new Date().getFullYear() + '-' + pad2(ipSeq++);
     const attachments = await _uploadAttachments(seq);
     const d = { seq, mmdd: document.getElementById('today-date').textContent.slice(5), cat, title, effect, author, attachments };
+    const newId = await _saveRecordToCloud('improve_records', d);
+    d._docId = newId; d._col = 'improve_records';
     const tbody = document.querySelector('#sec-improve table tbody');
     if(tbody){
       const tr = document.createElement('tr');
+      tr.dataset.docid = newId; tr.dataset.col = 'improve_records';
       tr.innerHTML = rowIp(d);
       tbody.prepend(tr);
     }
-    _saveRecordToCloud('improve_records', d);
     toast(`개선 제안 등록 완료: ${seq}`);
   }
 
@@ -1773,13 +1891,15 @@ async function submitReg(){
     const seq  = 'ECN-' + nowYM() + '-' + pad2(ecnSeq++);
     const attachments = await _uploadAttachments(seq);
     const d = { seq, mmdd: document.getElementById('today-date').textContent.slice(5), vendor, pnum, ctype, cdesc, appDate, attachments };
+    const newId = await _saveRecordToCloud('ecn_records', d);
+    d._docId = newId; d._col = 'ecn_records';
     const tbody = document.querySelector('#sec-change table tbody');
     if(tbody){
       const tr = document.createElement('tr');
+      tr.dataset.docid = newId; tr.dataset.col = 'ecn_records';
       tr.innerHTML = rowEcn(d);
       tbody.prepend(tr);
     }
-    _saveRecordToCloud('ecn_records', d);
     toast(`변경점 등록 완료: ${seq}`);
   }
 
@@ -1795,13 +1915,15 @@ async function submitReg(){
     const code = 'V-' + pad2(vSeq++);
     const attachments = await _uploadAttachments(code);
     const d = { code, name, biz, ceo, cat, pm, tel, attachments };
+    const newId = await _saveRecordToCloud('supplier_records', d);
+    d._docId = newId; d._col = 'supplier_records';
     const tbody = document.querySelector('#sec-sup-list table tbody');
     if(tbody){
       const tr = document.createElement('tr');
+      tr.dataset.docid = newId; tr.dataset.col = 'supplier_records';
       tr.innerHTML = rowSup(d);
       tbody.prepend(tr);
     }
-    _saveRecordToCloud('supplier_records', d);
     toast(`협력사 등록 완료: ${name} (${code})`);
   }
 
@@ -1815,13 +1937,15 @@ async function submitReg(){
     const seq  = 'IR-' + nowYM() + '-' + pad2(irSeq++);
     const attachments = await _uploadAttachments(seq);
     const d = { seq, vendor, rtype, content, mmdd: document.getElementById('today-date').textContent.slice(5), due, attachments };
+    const newId = await _saveRecordToCloud('improve_request_records', d);
+    d._docId = newId; d._col = 'improve_request_records';
     const tbody = document.querySelector('#sec-sup-req table tbody');
     if(tbody){
       const tr = document.createElement('tr');
+      tr.dataset.docid = newId; tr.dataset.col = 'improve_request_records';
       tr.innerHTML = rowIr(d);
       tbody.prepend(tr);
     }
-    _saveRecordToCloud('improve_request_records', d);
     toast(`개선 요청 등록 완료: ${seq}`);
   }
 
