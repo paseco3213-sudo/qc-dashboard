@@ -506,6 +506,7 @@ const S = {
   specCustomName: '',
   activeCustomId: null, // 현재 선택된 업로드 파일의 고유 id
   customUploads: [], // 업로드한 파일들 누적 목록 [{id, name, thumb, isPdf, loading, error}]
+  hiddenSpecIds: new Set(), // 삭제(숨김) 처리된 기본 사양서 12종의 id
   currentBrand: 'all',
   photos: {},        // {1:dataUrl, ...}
   productName: '',
@@ -517,7 +518,8 @@ const S = {
 function updateAllTabCount(){
   const tab = document.getElementById('btab-all');
   if(!tab) return;
-  tab.textContent = '전체 (' + (SPEC_DB.length + S.customUploads.length) + ')';
+  const visiblePresetCount = SPEC_DB.filter(s=>!S.hiddenSpecIds.has(s.id)).length;
+  tab.textContent = '전체 (' + (visiblePresetCount + S.customUploads.length) + ')';
 }
 
 function _customCardHTML(entry){
@@ -544,7 +546,8 @@ function _customCardHTML(entry){
 function renderSpecGrid(brand='all'){
   S.currentBrand = brand;
   const grid = document.getElementById('spec-grid');
-  const items = brand==='all' ? SPEC_DB : SPEC_DB.filter(s=>s.brand===brand);
+  const base = brand==='all' ? SPEC_DB : SPEC_DB.filter(s=>s.brand===brand);
+  const items = base.filter(s=>!S.hiddenSpecIds.has(s.id));
   let html = items.map(s=>`
     <div class="spec-card" id="sc_${s.id}" onclick="selectSpec('${s.id}')">
       <img class="spec-thumb" src="${s.img}" alt="${s.label}" loading="lazy">
@@ -553,6 +556,7 @@ function renderSpecGrid(brand='all'){
         <div class="spec-name">${s.label}</div>
       </div>
       <div class="spec-check">✓</div>
+      <button type="button" onclick="event.stopPropagation(); deleteSpec('${s.id}')" title="삭제" style="position:absolute;top:6px;left:6px;background:var(--red);color:#fff;border:none;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;line-height:1;">✕</button>
     </div>`).join('');
   // 업로드한 파일들은 '전체' 탭에서 최신순으로 상단에 함께 표시
   if(brand==='all' && S.customUploads.length){
@@ -650,6 +654,51 @@ async function _deleteSpecFromCloud(entry){
     await fbStorage.ref('specs/' + entry.id + '/thumb.jpg').delete();
   } catch(err){
     // 썸네일이 없을 수도 있음 — 무시
+  }
+}
+
+// ── 기본 내장 사양서 12종 중 하나를 삭제(숨김) 처리 — 코드에 내장된 목록이라 완전히 지울 수는 없고,
+//    Firebase에 '숨김' 상태를 저장해서 모든 팀원 화면에서 안 보이게 함 ──
+function deleteSpec(id){
+  const spec = SPEC_DB.find(s=>s.id===id);
+  if(!spec) return;
+  if(!confirm('\'' + spec.label + '\' \uc0ac\uc591\uc11c\ub97c \ubaa9\ub85d\uc5d0\uc11c \uc0ad\uc81c\ud558\uc2dc\uaca0\uc5b4\uc694? \ud300\uc6d0 \ubaa8\ub450\uc5d0\uac8c\uc11c \uc0ac\ub77c\uc9d1\ub2c8\ub2e4.')) return;
+
+  S.hiddenSpecIds.add(id);
+
+  // 지금 선택되어 있던 사양서였다면 선택 해제
+  if(S.specDb && S.specDb.id===id){
+    S.specDb = null;
+    const selBox = document.getElementById('spec-sel-box');
+    if(selBox) selBox.style.display='none';
+  }
+
+  renderSpecGrid(S.currentBrand);
+  updateAllTabCount();
+  showToast('\ud83d\uddd1\ufe0f ' + spec.label + ' \uc0ad\uc81c\ub428');
+
+  _hideSpecInCloud(id);
+}
+
+async function _hideSpecInCloud(id){
+  try{
+    await fbDb.collection('hiddenSpecs').doc(id).set({
+      hiddenAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(err){
+    console.error('사양서 숨김 처리 클라우드 저장 실패', err);
+  }
+}
+
+// ── 페이지 로드 시 다른 팀원이 삭제한 기본 사양서 목록을 불러와서 동일하게 숨김 ──
+async function _loadHiddenSpecs(){
+  try{
+    const snap = await fbDb.collection('hiddenSpecs').get();
+    snap.docs.forEach(doc => S.hiddenSpecIds.add(doc.id));
+    renderSpecGrid(S.currentBrand);
+    updateAllTabCount();
+  } catch(err){
+    console.error('숨김 사양서 목록 로드 실패', err);
   }
 }
 
@@ -1202,6 +1251,7 @@ function toggleCI(id){
 // Init
 renderSpecGrid();
 updateAllTabCount();
+_loadHiddenSpecs();
 _loadCloudSpecs();
 _loadCloudHistory();
 
