@@ -373,6 +373,23 @@ tbody tr:hover td { background: var(--bg); }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-storage-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyD-WHWS9bdmxczsi-UcR4MnGOwacA0gNcg",
+    authDomain: "paseco-iqc-2026.firebaseapp.com",
+    projectId: "paseco-iqc-2026",
+    storageBucket: "paseco-iqc-2026.firebasestorage.app",
+    messagingSenderId: "619205720185",
+    appId: "1:619205720185:web:7d4d19885d35bf78b5fca8",
+    measurementId: "G-W9XDF2R9K1"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const fbDb = firebase.firestore();
+  const fbStorage = firebase.storage();
+</script>
 </head>
 <body>
 <div class="app">
@@ -1418,9 +1435,16 @@ tbody tr:hover td { background: var(--bg); }
         <div class="fg"><label>불량수량</label><input type="number" placeholder="0"></div>
       </div>
     </div>
+    <div class="fg full" style="margin-top:12px">
+      <label>📎 첨부파일 <span style="font-weight:400;color:var(--text3,#94a3b8);font-size:11px">(PDF · PPT · Excel · Word · 이미지, 여러 개 선택 가능)</span></label>
+      <input type="file" id="reg-f-attach" multiple accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+        onchange="_previewAttachments(this)"
+        style="width:100%;padding:7px 8px;border:1px solid var(--border,#e2e8f0);border-radius:6px;font-size:12px;background:#fff">
+      <div id="reg-f-attach-list" style="margin-top:5px;font-size:11.5px;color:var(--text3,#94a3b8);line-height:1.5"></div>
+    </div>
     <div style="margin-top:18px;display:flex;gap:8px;justify-content:flex-end">
       <button class="btn" onclick="closeRegModal()">취소</button>
-      <button class="btn btn-primary" onclick="submitReg()">등록</button>
+      <button class="btn btn-primary" id="reg-submit-btn" onclick="submitReg()">등록</button>
     </div>
   </div>
 </div>
@@ -1456,7 +1480,13 @@ function openRegModal() {
   document.getElementById('reg-modal-title').textContent = regTitles[currentPage] || '신규 등록';
   document.getElementById('reg-modal').classList.add('open');
 }
-function closeRegModal() { document.getElementById('reg-modal').classList.remove('open'); }
+function closeRegModal() {
+  document.getElementById('reg-modal').classList.remove('open');
+  const fInput = document.getElementById('reg-f-attach');
+  const fList = document.getElementById('reg-f-attach-list');
+  if (fInput) fInput.value = '';
+  if (fList) fList.textContent = '';
+}
 
 function openDetail(name) {
   const v = vendorStore.find(x => x.name === name);
@@ -1541,8 +1571,99 @@ function toast(msg){
 }
 
 /* ── 메인 등록 함수 ── */
-function submitReg(){
+/* ── 첨부파일: 선택 미리보기 ── */
+function _previewAttachments(input){
+  const list = document.getElementById('reg-f-attach-list');
+  if (!list) return;
+  const files = [...(input.files || [])];
+  list.textContent = files.length ? ('선택됨: ' + files.map(f => f.name).join(', ')) : '';
+}
+
+/* ── 첨부파일: Firebase Storage 업로드 ── */
+async function _uploadAttachments(idPrefix){
+  const input = document.getElementById('reg-f-attach');
+  const files = [...(input?.files || [])];
+  if (!files.length) return [];
+  const results = [];
+  for (const file of files) {
+    try {
+      const ref = fbStorage.ref('attachments/' + idPrefix + '/' + Date.now() + '_' + file.name);
+      await ref.put(file);
+      const url = await ref.getDownloadURL();
+      results.push({ name: file.name, url });
+    } catch (err) {
+      console.error('첨부파일 업로드 실패: ' + file.name, err);
+      toast('⚠️ 첨부파일 업로드 실패: ' + file.name);
+    }
+  }
+  if (input) input.value = '';
+  const list = document.getElementById('reg-f-attach-list');
+  if (list) list.textContent = '';
+  return results;
+}
+
+/* ── 첨부파일 링크 렌더링 (각 행 템플릿에서 공용으로 사용) ── */
+function attachHtml(d){
+  if (!d.attachments || !d.attachments.length) return '';
+  return d.attachments.map(a =>
+    `<a href="${a.url}" target="_blank" rel="noopener" title="${a.name}" style="margin-left:5px;font-size:12px;text-decoration:none">📎</a>`
+  ).join('');
+}
+
+/* ── 등록 데이터를 화면 표에 그려주는 행(row) 템플릿 — 신규 등록 시점과, 새로고침 후 Firebase에서 불러올 때 공용으로 사용 ── */
+function rowIqc(d){
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td>${d.pname}</td><td>${d.inQty}</td><td>${d.inQty}</td><td>${d.ncQty}</td><td>${resultBadge(d.result)}</td><td>${d.inspector}</td>`;
+}
+function rowNc(d){
+  const sevMap = {'심각':'b-red','보통':'b-gray','경미':'b-amber'};
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td>${d.dtype}</td><td>${d.dqty}</td><td><span class="badge ${sevMap[d.sev]||'b-gray'}">${d.sev}</span></td><td>${d.due||'—'}</td><td><span class="badge b-amber">미처리</span></td>`;
+}
+function rowCa(d){
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>—</td><td>${d.ncRef}</td><td>${d.mmdd}</td><td>${d.due||'—'}</td><td><span class="badge b-amber">검토중</span></td>`;
+}
+function rowIp(d){
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>${d.mmdd}</td><td>${d.author||'—'}</td><td><span class="tag">${d.cat}</span></td><td>${d.title}</td><td>${d.effect||'—'}</td><td><span class="badge b-blue">제안</span></td>`;
+}
+function rowEcn(d){
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td><span class="tag">${d.ctype}</span></td><td>${d.cdesc}</td><td>${d.appDate||'—'}</td><td><span class="badge b-amber">검토필요</span></td>`;
+}
+function rowSup(d){
+  return `<td style="color:var(--text2);font-family:'IBM Plex Mono',monospace;font-size:12px">${d.code}${attachHtml(d)}</td><td><strong>${d.name}</strong></td><td><span class="tag">${d.cat}</span></td><td>${d.pm}</td><td>${d.tel}</td><td><span class="badge b-gray">심사중</span></td><td>—</td><td>—</td><td><span class="badge b-blue">등록중</span></td><td><button class="btn btn-sm" onclick="openDetail('${d.name}')">상세</button></td>`;
+}
+function rowIr(d){
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}</td><td>${d.vendor}</td><td><span class="tag">${d.rtype}</span></td><td>${d.content}</td><td>${d.mmdd}</td><td>${d.due||'—'}</td><td><span class="badge b-blue">요청</span></td>`;
+}
+
+/* ── Firebase 저장/불러오기 공용 함수 ── */
+async function _saveRecordToCloud(collectionName, data){
+  try{
+    await fbDb.collection(collectionName).add(Object.assign({}, data, { createdAt: firebase.firestore.FieldValue.serverTimestamp() }));
+  } catch(err){
+    console.error(collectionName + ' 저장 실패', err);
+  }
+}
+async function _loadCloudRecords(collectionName, tbodySelector, rowFn){
+  try{
+    const snap = await fbDb.collection(collectionName).orderBy('createdAt', 'desc').limit(300).get();
+    const tbody = document.querySelector(tbodySelector);
+    if(!tbody) return 0;
+    [...snap.docs].reverse().forEach(doc => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = rowFn(doc.data());
+      tbody.prepend(tr);
+    });
+    return snap.size;
+  } catch(err){
+    console.error(collectionName + ' 로드 실패', err);
+    return 0;
+  }
+}
+
+async function submitReg(){
   const page = currentPage;
+  const submitBtn = document.getElementById('reg-submit-btn');
+  const hasFiles = (document.getElementById('reg-f-attach')?.files || []).length > 0;
+  if (submitBtn && hasFiles) { submitBtn.disabled = true; submitBtn.textContent = '첨부파일 업로드 중...'; }
 
   if(page === 'iqc-dash' || page === 'incoming'){
     const g = id => document.getElementById(id);
@@ -1555,23 +1676,28 @@ function submitReg(){
     const ncDesc    = g('iqc-f-nc-desc')?.value || '';
     const inspector = g('iqc-f-inspector')?.value || '';
     const result    = g('iqc-f-result')?.value || '검사중';
-    if(!vendor || !pnum){ toast('업체명과 품번은 필수입니다.'); return; }
+    if(!vendor || !pnum){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('업체명과 품번은 필수입니다.'); return; }
     const seq  = 'IQC-' + nowYM() + '-' + pad2(iqcSeq++);
     const mmdd = date ? date.slice(5).replace('-','.') : '—';
+    const attachments = await _uploadAttachments(seq);
+    const d = { seq, mmdd, vendor, pnum, pname, inQty, ncQty, result, inspector, attachments };
     const tbody = document.querySelector('#sec-incoming table tbody');
     if(tbody){
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>${mmdd}</td><td>${vendor}</td><td>${pnum}</td><td>${pname}</td><td>${inQty}</td><td>${inQty}</td><td>${ncQty}</td><td>${resultBadge(result)}</td><td>${inspector}</td>`;
+      tr.innerHTML = rowIqc(d);
       tbody.prepend(tr);
     }
+    _saveRecordToCloud('iqc_records', d);
     if(result === '불합격'){
       const ncSeqVal = 'NC-' + nowYM() + '-' + pad2(ncSeq++);
+      const d2 = { seq: ncSeqVal, mmdd, vendor, pnum, dtype: ncDesc||'외관불량', dqty: ncQty, sev: '심각', due: '' };
       const ncTbody = document.querySelector('#sec-nonconf table tbody');
       if(ncTbody){
         const tr2 = document.createElement('tr');
-        tr2.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${ncSeqVal}</td><td>${mmdd}</td><td>${vendor}</td><td>${pnum}</td><td>${ncDesc||'외관불량'}</td><td>${ncQty}</td><td><span class="badge b-red">심각</span></td><td>—</td><td><span class="badge b-amber">미처리</span></td>`;
+        tr2.innerHTML = rowNc(d2);
         ncTbody.prepend(tr2);
       }
+      _saveRecordToCloud('nc_records', d2);
       toast('⚠️ 불합격: ' + seq + ' → 부적합 ' + ncSeqVal + ' 자동 생성');
     } else {
       toast('입고검사 등록 완료: ' + seq);
@@ -1586,15 +1712,17 @@ function submitReg(){
     const dqty   = inputs[3]?.value || '0';
     const sev    = inputs[4]?.value || '보통';
     const due    = inputs[5]?.value || '';
-    if(!vendor){ toast('업체명은 필수입니다.'); return; }
+    if(!vendor){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('업체명은 필수입니다.'); return; }
     const seq  = 'NC-' + nowYM() + '-' + pad2(ncSeq++);
+    const attachments = await _uploadAttachments(seq);
+    const d = { seq, mmdd: document.getElementById('today-date').textContent.slice(5), vendor, pnum, dtype, dqty, sev, due, attachments };
     const tbody = document.querySelector('#sec-nonconf table tbody');
     if(tbody){
-      const sevMap = {'심각':'b-red','보통':'b-gray','경미':'b-amber'};
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>${document.getElementById('today-date').textContent.slice(5)}</td><td>${vendor}</td><td>${pnum}</td><td>${dtype}</td><td>${dqty}</td><td><span class="badge ${sevMap[sev]||'b-gray'}">${sev}</span></td><td>${due||'—'}</td><td><span class="badge b-amber">미처리</span></td>`;
+      tr.innerHTML = rowNc(d);
       tbody.prepend(tr);
     }
+    _saveRecordToCloud('nc_records', d);
     toast(`부적합 등록 완료: ${seq}`);
   }
 
@@ -1603,14 +1731,17 @@ function submitReg(){
     const ncRef  = inputs[0]?.value || '';
     const due    = inputs[1]?.value || '';
     const resp   = inputs[2]?.value || '';
-    if(!ncRef){ toast('부적합번호를 입력하세요.'); return; }
+    if(!ncRef){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('부적합번호를 입력하세요.'); return; }
     const seq  = 'CA-' + nowYM() + '-' + pad2(caSeq++);
+    const attachments = await _uploadAttachments(seq);
+    const d = { seq, mmdd: document.getElementById('today-date').textContent.slice(5), ncRef, due, resp, attachments };
     const tbody = document.querySelector('#sec-caplan .card:first-child table tbody');
     if(tbody){
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>—</td><td>${ncRef}</td><td>${document.getElementById('today-date').textContent.slice(5)}</td><td>${due||'—'}</td><td><span class="badge b-amber">검토중</span></td>`;
+      tr.innerHTML = rowCa(d);
       tbody.prepend(tr);
     }
+    _saveRecordToCloud('ca_records', d);
     toast(`대책서 등록 완료: ${seq}`);
   }
 
@@ -1620,14 +1751,17 @@ function submitReg(){
     const title  = inputs[1]?.value || '';
     const effect = inputs[2]?.value || '';
     const author = inputs[3]?.value || '';
-    if(!title){ toast('제목을 입력하세요.'); return; }
+    if(!title){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('제목을 입력하세요.'); return; }
     const seq  = 'IP-' + nowYM() + '-' + pad2(ipSeq++);
+    const attachments = await _uploadAttachments(seq);
+    const d = { seq, mmdd: document.getElementById('today-date').textContent.slice(5), cat, title, effect, author, attachments };
     const tbody = document.querySelector('#sec-improve table tbody');
     if(tbody){
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>${document.getElementById('today-date').textContent.slice(5)}</td><td>${author||'—'}</td><td><span class="tag">${cat}</span></td><td>${title}</td><td>${effect||'—'}</td><td><span class="badge b-blue">제안</span></td>`;
+      tr.innerHTML = rowIp(d);
       tbody.prepend(tr);
     }
+    _saveRecordToCloud('improve_records', d);
     toast(`개선 제안 등록 완료: ${seq}`);
   }
 
@@ -1638,14 +1772,17 @@ function submitReg(){
     const ctype  = inputs[2]?.value || '';
     const cdesc  = inputs[3]?.value || '';
     const appDate= inputs[4]?.value || '';
-    if(!vendor){ toast('업체명은 필수입니다.'); return; }
+    if(!vendor){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('업체명은 필수입니다.'); return; }
     const seq  = 'ECN-' + nowYM() + '-' + pad2(ecnSeq++);
+    const attachments = await _uploadAttachments(seq);
+    const d = { seq, mmdd: document.getElementById('today-date').textContent.slice(5), vendor, pnum, ctype, cdesc, appDate, attachments };
     const tbody = document.querySelector('#sec-change table tbody');
     if(tbody){
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>${document.getElementById('today-date').textContent.slice(5)}</td><td>${vendor}</td><td>${pnum}</td><td><span class="tag">${ctype}</span></td><td>${cdesc}</td><td>${appDate||'—'}</td><td><span class="badge b-amber">검토필요</span></td>`;
+      tr.innerHTML = rowEcn(d);
       tbody.prepend(tr);
     }
+    _saveRecordToCloud('ecn_records', d);
     toast(`변경점 등록 완료: ${seq}`);
   }
 
@@ -1657,15 +1794,17 @@ function submitReg(){
     const cat    = inputs[3]?.value || '';
     const pm     = inputs[4]?.value || '';
     const tel    = inputs[5]?.value || '';
-    if(!name){ toast('업체명은 필수입니다.'); return; }
+    if(!name){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('업체명은 필수입니다.'); return; }
     const code = 'V-' + pad2(vSeq++);
+    const attachments = await _uploadAttachments(code);
+    const d = { code, name, biz, ceo, cat, pm, tel, attachments };
     const tbody = document.querySelector('#sec-sup-list table tbody');
     if(tbody){
-      const init = name.slice(0,2).toUpperCase();
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style="color:var(--text2);font-family:'IBM Plex Mono',monospace;font-size:12px">${code}</td><td><strong>${name}</strong></td><td><span class="tag">${cat}</span></td><td>${pm}</td><td>${tel}</td><td><span class="badge b-gray">심사중</span></td><td>—</td><td>—</td><td><span class="badge b-blue">등록중</span></td><td><button class="btn btn-sm" onclick="openDetail('${name}')">상세</button></td>`;
+      tr.innerHTML = rowSup(d);
       tbody.prepend(tr);
     }
+    _saveRecordToCloud('supplier_records', d);
     toast(`협력사 등록 완료: ${name} (${code})`);
   }
 
@@ -1675,14 +1814,17 @@ function submitReg(){
     const rtype  = inputs[1]?.value || '';
     const content= inputs[2]?.value || '';
     const due    = inputs[3]?.value || '';
-    if(!vendor){ toast('업체명은 필수입니다.'); return; }
+    if(!vendor){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('업체명은 필수입니다.'); return; }
     const seq  = 'IR-' + nowYM() + '-' + pad2(irSeq++);
+    const attachments = await _uploadAttachments(seq);
+    const d = { seq, vendor, rtype, content, mmdd: document.getElementById('today-date').textContent.slice(5), due, attachments };
     const tbody = document.querySelector('#sec-sup-req table tbody');
     if(tbody){
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${seq}</td><td>${vendor}</td><td><span class="tag">${rtype}</span></td><td>${content}</td><td>${document.getElementById('today-date').textContent.slice(5)}</td><td>${due||'—'}</td><td><span class="badge b-blue">요청</span></td>`;
+      tr.innerHTML = rowIr(d);
       tbody.prepend(tr);
     }
+    _saveRecordToCloud('improve_request_records', d);
     toast(`개선 요청 등록 완료: ${seq}`);
   }
 
@@ -1692,8 +1834,25 @@ function submitReg(){
 
   /* 폼 초기화 후 모달 닫기 */
   document.querySelectorAll('#reg-form-content input[type="text"], #reg-form-content input[type="number"], #reg-form-content textarea').forEach(el => el.value = '');
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '등록'; }
   closeRegModal();
 }
+
+/* ── 페이지 로드 시 Firebase에 저장된 기존 데이터를 불러와 각 표에 채움 ── */
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const n1 = await _loadCloudRecords('iqc_records', '#sec-incoming table tbody', rowIqc);
+    const n2 = await _loadCloudRecords('nc_records', '#sec-nonconf table tbody', rowNc);
+    const n3 = await _loadCloudRecords('ca_records', '#sec-caplan .card:first-child table tbody', rowCa);
+    const n4 = await _loadCloudRecords('improve_records', '#sec-improve table tbody', rowIp);
+    const n5 = await _loadCloudRecords('ecn_records', '#sec-change table tbody', rowEcn);
+    const n6 = await _loadCloudRecords('supplier_records', '#sec-sup-list table tbody', rowSup);
+    const n7 = await _loadCloudRecords('improve_request_records', '#sec-sup-req table tbody', rowIr);
+    iqcSeq += n1; ncSeq += n2; caSeq += n3; ipSeq += n4; ecnSeq += n5; vSeq += n6; irSeq += n7;
+  } catch(err) {
+    console.error('클라우드 데이터 로드 중 오류', err);
+  }
+});
 
 /* ── 페이지별 등록 폼 동적 교체 ── */
 const regForms = {
