@@ -1752,7 +1752,7 @@ async function submitReg(){
     const effect = inputs[2]?.value || '';
     const author = inputs[3]?.value || '';
     if(!title){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('제목을 입력하세요.'); return; }
-    const seq  = 'IP-' + nowYM() + '-' + pad2(ipSeq++);
+    const seq  = 'IQC-' + new Date().getFullYear() + '-' + pad2(ipSeq++);
     const attachments = await _uploadAttachments(seq);
     const d = { seq, mmdd: document.getElementById('today-date').textContent.slice(5), cat, title, effect, author, attachments };
     const tbody = document.querySelector('#sec-improve table tbody');
