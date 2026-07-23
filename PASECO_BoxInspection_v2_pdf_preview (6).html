@@ -197,6 +197,23 @@ body{background:var(--bg);color:var(--txt);font-family:var(--font);font-size:13p
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-storage-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyD-WHWS9bdmxczsi-UcR4MnGOwacA0gNcg",
+    authDomain: "paseco-iqc-2026.firebaseapp.com",
+    projectId: "paseco-iqc-2026",
+    storageBucket: "paseco-iqc-2026.firebasestorage.app",
+    messagingSenderId: "619205720185",
+    appId: "1:619205720185:web:7d4d19885d35bf78b5fca8",
+    measurementId: "G-W9XDF2R9K1"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const fbDb = firebase.firestore();
+  const fbStorage = firebase.storage();
+</script>
 </head>
 <body>
 
@@ -613,7 +630,7 @@ function handleSpecFile(file){
   if(!file) return;
   const id = 'up_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
   const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-  const entry = { id, name: file.name, thumb: null, isPdf, loading: true, error: false };
+  const entry = { id, name: file.name, thumb: null, isPdf, loading: true, error: false, file };
   S.customUploads.push(entry);
 
   // 방금 업로드한 파일을 현재 선택으로 지정 (각 업로드는 독립된 카드로 계속 누적됨)
@@ -658,6 +675,54 @@ function _onUploadReady(entry){
                 : '\u2705 ' + entry.name + ' \uc0ac\uc591\uc11c \ub4f1\ub85d \uc644\ub8cc',
     entry.error
   );
+  _syncSpecToCloud(entry);
+}
+
+// ── 업로드한 사양서를 Firebase(Storage+Firestore)에 저장 — 새로고침/다른 팀원 접속 시에도 유지됨 ──
+async function _syncSpecToCloud(entry){
+  try{
+    const file = entry.file;
+    if(!file) return;
+    const fileRef = fbStorage.ref('specs/' + entry.id + '/' + file.name);
+    await fileRef.put(file);
+    const fileUrl = await fileRef.getDownloadURL();
+
+    let thumbUrl = null;
+    if(entry.thumb){
+      const thumbRef = fbStorage.ref('specs/' + entry.id + '/thumb.jpg');
+      await thumbRef.putString(entry.thumb, 'data_url');
+      thumbUrl = await thumbRef.getDownloadURL();
+    }
+
+    await fbDb.collection('specs').doc(entry.id).set({
+      name: entry.name,
+      isPdf: !!entry.isPdf,
+      fileUrl,
+      thumbUrl,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(err){
+    console.error('사양서 클라우드 저장 실패', err);
+    // 클라우드 저장에 실패해도 이번 세션 내 로컬 사용에는 지장 없음 — 조용히 로그만 남김
+  }
+}
+
+// ── 페이지 로드 시 팀원들이 이전에 올린 사양서를 불러와 갤러리에 채움 ──
+async function _loadCloudSpecs(){
+  try{
+    const snap = await fbDb.collection('specs').orderBy('createdAt', 'desc').limit(50).get();
+    const cloudEntries = snap.docs.map(doc => {
+      const d = doc.data();
+      return { id: doc.id, name: d.name, thumb: d.thumbUrl || null, isPdf: !!d.isPdf, loading: false, error: !d.thumbUrl && d.isPdf };
+    });
+    // 이번 세션에서 이미 업로드한 항목과 중복되지 않게 병합
+    const existingIds = new Set(S.customUploads.map(u=>u.id));
+    cloudEntries.reverse().forEach(e=>{ if(!existingIds.has(e.id)) S.customUploads.unshift(e); });
+    renderSpecGrid(S.currentBrand);
+    updateAllTabCount();
+  } catch(err){
+    console.error('클라우드 사양서 목록 로드 실패', err);
+  }
 }
 
 async function _renderPdfThumb(file, entry){
@@ -1009,8 +1074,48 @@ function displayResult(r, specImg, checkedItems){
 }
 
 function saveHistory(r){
-  S.history.unshift({date:new Date().toLocaleString('ko-KR'),product:S.productName||'제품',verdict:r.verdict,score:r.score,photoUrl:S.photos[1]||''});
+  const entryLocal = {date:new Date().toLocaleString('ko-KR'),product:S.productName||'제품',verdict:r.verdict,score:r.score,photoUrl:S.photos[1]||''};
+  S.history.unshift(entryLocal);
   renderHistory();
+  _syncHistoryToCloud(entryLocal);
+}
+
+// ── 판정 이력을 Firebase에 저장 — 새로고침/다른 팀원 접속 시에도 유지됨 ──
+async function _syncHistoryToCloud(entryLocal){
+  try{
+    const id = 'insp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    let photoUrl = null;
+    if(entryLocal.photoUrl){
+      const photoRef = fbStorage.ref('inspections/' + id + '/front.jpg');
+      await photoRef.putString(entryLocal.photoUrl, 'data_url');
+      photoUrl = await photoRef.getDownloadURL();
+    }
+    await fbDb.collection('inspections').doc(id).set({
+      product: entryLocal.product,
+      verdict: entryLocal.verdict,
+      score: entryLocal.score,
+      photoUrl,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch(err){
+    console.error('판정 이력 클라우드 저장 실패', err);
+  }
+}
+
+// ── 페이지 로드 시 이전 판정 이력을 불러옴 ──
+async function _loadCloudHistory(){
+  try{
+    const snap = await fbDb.collection('inspections').orderBy('createdAt', 'desc').limit(8).get();
+    const cloudHist = snap.docs.map(doc=>{
+      const d = doc.data();
+      const date = (d.createdAt && d.createdAt.toDate) ? d.createdAt.toDate().toLocaleString('ko-KR') : '';
+      return { date, product: d.product||'제품', verdict: d.verdict, score: d.score, photoUrl: d.photoUrl||'' };
+    });
+    S.history = cloudHist;
+    renderHistory();
+  } catch(err){
+    console.error('클라우드 이력 로드 실패', err);
+  }
 }
 
 function renderHistory(){
@@ -1045,6 +1150,8 @@ function toggleCI(id){
 // Init
 renderSpecGrid();
 updateAllTabCount();
+_loadCloudSpecs();
+_loadCloudHistory();
 
 // API Key 복원
 (function(){
