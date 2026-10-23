@@ -529,6 +529,15 @@ tbody tr:hover td { background: var(--bg); }
 .qd .vd-btn:hover { border-color: var(--blue); background: var(--blue-l); }
 @media (max-width: 1100px) { .qd .kpi-grid { grid-template-columns: repeat(2,1fr); } .qd .charts-row, .qd .monthly-charts { grid-template-columns: 1fr !important; } }
 
+.week-bars{cursor:pointer}
+.wb.sel{outline:2px solid var(--text);outline-offset:1px}
+.wb-labels{display:flex;gap:4px;margin-top:4px}
+.wb-labels>div{flex:1;text-align:center;font-size:9.5px;line-height:1.3;color:var(--text3);white-space:nowrap;letter-spacing:-.02em}
+.wb-labels>div.now{color:var(--text);font-weight:700}
+#wb-pop{position:absolute;z-index:3000;display:none;background:#1a1a18;color:#fff;border-radius:8px;padding:9px 12px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:300px;pointer-events:none}
+#wb-pop .wp-t{font-weight:700;margin-bottom:4px}
+#wb-pop .wp-n b{font-size:14px}
+#wb-pop .wp-items{margin-top:5px;font-size:11px;line-height:1.6;color:rgba(255,255,255,.75)}
 .act-th{width:76px;text-align:center!important}
 .act-td{text-align:center;white-space:nowrap}
 .act-btn{background:none;border:1px solid transparent;border-radius:6px;cursor:pointer;font-size:13px;padding:3px 6px;opacity:.55;transition:.15s;line-height:1}
@@ -852,18 +861,18 @@ tr.row-flash td{animation:rowFlash 2.2s ease}
     <div class="hero-left">
       <svg viewBox="0 0 140 38" xmlns="http://www.w3.org/2000/svg" class="hero-logo" style="height:28px;display:block;margin-bottom:10px"><rect width="140" height="38" rx="5" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1"/><text x="70" y="26" font-family="Arial,sans-serif" font-size="18" font-weight="900" fill="white" text-anchor="middle" letter-spacing="4">PASECO</text></svg>
       <div class="hero-title">IQC_Management</div>
-      <div class="hero-sub">Incoming Quality Control · 2026년 4월 기준</div>
+      <div class="hero-sub" id="sum-hero-date">Incoming Quality Control · 2026년 4월 기준</div>
     </div>
     <div class="hero-right">
       <div class="hero-kpi">
-        <div class="hero-kpi-val">124</div>
+        <div class="hero-kpi-val" id="sum-in-month">124</div>
         <div class="hero-kpi-lbl">이번달 입고</div>
-        <div class="hero-kpi-sub">전월 대비 +8건</div>
+        <div class="hero-kpi-sub" id="sum-in-month-sub">전월 대비 +8건</div>
       </div>
       <div class="hero-kpi">
-        <div class="hero-kpi-val" style="color:#7ee8a2">94.3%</div>
-        <div class="hero-kpi-lbl">합격률</div>
-        <div class="hero-kpi-sub">목표 95%</div>
+        <div class="hero-kpi-val" style="color:#7ee8a2" id="sum-pass-rate">94.3%</div>
+        <div class="hero-kpi-lbl">이번달 합격률</div>
+        <div class="hero-kpi-sub" id="sum-pass-sub">목표 95%</div>
       </div>
       <div class="hero-kpi">
         <div class="hero-kpi-val" style="color:#ffb3b3" id="sum-nc-open">7건</div>
@@ -871,9 +880,9 @@ tr.row-flash td{animation:rowFlash 2.2s ease}
         <div class="hero-kpi-sub" id="sum-nc-overdue">기한 초과 2건</div>
       </div>
       <div class="hero-kpi">
-        <div class="hero-kpi-val" style="color:#ffd97d">32개</div>
+        <div class="hero-kpi-val" style="color:#ffd97d" id="sum-vendors">32개</div>
         <div class="hero-kpi-lbl">등록 협력사</div>
-        <div class="hero-kpi-sub">A등급 14개사</div>
+        <div class="hero-kpi-sub" id="sum-vendors-a">A등급 14개사</div>
       </div>
     </div>
   </div>
@@ -889,17 +898,17 @@ tr.row-flash td{animation:rowFlash 2.2s ease}
         이번주 입고건수
       </div>
       <div class="wc-nums">
-        <div class="wc-this" style="color:var(--blue)">34</div>
-        <div class="wc-prev">전주 29건</div>
+        <div class="wc-this" style="color:var(--blue)" id="sum-in-week">0</div>
+        <div class="wc-prev" id="sum-in-prev"></div>
       </div>
-      <div class="week-bars">
+      <div class="week-bars" id="sum-in-bars">
         <div class="wb" style="height:55%;background:var(--border2)"></div>
         <div class="wb" style="height:72%;background:var(--border2)"></div>
         <div class="wb" style="height:62%;background:var(--border2)"></div>
         <div class="wb" style="height:80%;background:var(--border2)"></div>
         <div class="wb" style="height:100%;background:var(--blue)"></div>
       </div>
-      <span class="wc-delta delta-up">▲ +5건 +17.2%</span>
+      <span class="wc-delta delta-up" id="sum-in-delta"></span>
     </div>
     <!-- 이번주 합격 -->
     <div class="wc-card">
@@ -910,17 +919,17 @@ tr.row-flash td{animation:rowFlash 2.2s ease}
         이번주 합격건수
       </div>
       <div class="wc-nums">
-        <div class="wc-this" style="color:var(--green)">31</div>
-        <div class="wc-prev">전주 27건</div>
+        <div class="wc-this" style="color:var(--green)" id="sum-ok-week">0</div>
+        <div class="wc-prev" id="sum-ok-prev"></div>
       </div>
-      <div class="week-bars">
+      <div class="week-bars" id="sum-ok-bars">
         <div class="wb" style="height:50%;background:var(--border2)"></div>
         <div class="wb" style="height:70%;background:var(--border2)"></div>
         <div class="wb" style="height:58%;background:var(--border2)"></div>
         <div class="wb" style="height:78%;background:var(--border2)"></div>
         <div class="wb" style="height:100%;background:var(--green)"></div>
       </div>
-      <span class="wc-delta delta-up">▲ +4건 합격률 91.2%</span>
+      <span class="wc-delta delta-up" id="sum-ok-delta"></span>
     </div>
     <!-- 이번주 부적합 -->
     <div class="wc-card">
@@ -985,54 +994,7 @@ tr.row-flash td{animation:rowFlash 2.2s ease}
         <div class="card-title">주차별 입고 vs 부적합 추이</div>
         <span style="font-size:12px;color:var(--text2)">최근 5주</span>
       </div>
-      <!-- 주차별 바 차트 -->
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
-          <span style="width:40px;color:var(--text2);text-align:right;flex-shrink:0">3주전</span>
-          <div style="flex:1;display:flex;gap:3px;align-items:center">
-            <div style="height:18px;border-radius:3px;background:var(--blue);width:62%;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:11px;font-weight:600">26건</div>
-          </div>
-          <div style="flex:1;display:flex;gap:3px;align-items:center">
-            <div style="height:18px;border-radius:3px;background:var(--red-bg);border:1px solid var(--red);width:80%;display:flex;align-items:center;padding:0 6px;color:var(--red-text);font-size:11px;font-weight:600">5건</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
-          <span style="width:40px;color:var(--text2);text-align:right;flex-shrink:0">2주전</span>
-          <div style="flex:1;display:flex;gap:3px;align-items:center">
-            <div style="height:18px;border-radius:3px;background:var(--blue);width:70%;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:11px;font-weight:600">29건</div>
-          </div>
-          <div style="flex:1;display:flex;gap:3px;align-items:center">
-            <div style="height:18px;border-radius:3px;background:var(--red-bg);border:1px solid var(--red);width:80%;display:flex;align-items:center;padding:0 6px;color:var(--red-text);font-size:11px;font-weight:600">5건</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
-          <span style="width:40px;color:var(--text2);text-align:right;flex-shrink:0">지지난주</span>
-          <div style="flex:1;display:flex;gap:3px;align-items:center">
-            <div style="height:18px;border-radius:3px;background:var(--blue);width:57%;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:11px;font-weight:600">24건</div>
-          </div>
-          <div style="flex:1;display:flex;gap:3px;align-items:center">
-            <div style="height:18px;border-radius:3px;background:var(--amber-bg);border:1px solid var(--amber);width:64%;display:flex;align-items:center;padding:0 6px;color:var(--amber-text);font-size:11px;font-weight:600">4건</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
-          <span style="width:40px;color:var(--text2);text-align:right;flex-shrink:0">지난주</span>
-          <div style="flex:1;display:flex;gap:3px;align-items:center">
-            <div style="height:18px;border-radius:3px;background:var(--blue);width:69%;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:11px;font-weight:600">29건</div>
-          </div>
-          <div style="flex:1;display:flex;gap:3px;align-items:center">
-            <div style="height:18px;border-radius:3px;background:var(--amber-bg);border:1px solid var(--amber);width:80%;display:flex;align-items:center;padding:0 6px;color:var(--amber-text);font-size:11px;font-weight:600">5건</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12px">
-          <span style="width:40px;color:var(--text2);text-align:right;flex-shrink:0;font-weight:600;color:var(--text)">이번주</span>
-          <div style="flex:1;display:flex;gap:3px;align-items:center">
-            <div style="height:22px;border-radius:3px;background:var(--blue);width:81%;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:11px;font-weight:700">34건 ▲</div>
-          </div>
-          <div style="flex:1;display:flex;gap:3px;align-items:center">
-            <div style="height:22px;border-radius:3px;background:var(--green-bg);border:1px solid var(--green);width:48%;display:flex;align-items:center;padding:0 6px;color:var(--green-text);font-size:11px;font-weight:700">3건 ▼</div>
-          </div>
-        </div>
-      </div>
+      <div id="sum-trend" style="display:flex;flex-direction:column;gap:9px;margin-top:4px"></div>
       <div style="display:flex;gap:16px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
         <div style="display:flex;align-items:center;gap:5px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:var(--blue)"></div>입고건수</div>
         <div style="display:flex;align-items:center;gap:5px;font-size:12px"><div style="width:10px;height:10px;border-radius:2px;background:var(--red)"></div>부적합</div>
@@ -1047,15 +1009,15 @@ tr.row-flash td{animation:rowFlash 2.2s ease}
       <div id="sum-task-list"></div>
     </div>
     <div class="card">
-      <div class="card-head"><div class="card-title">이번주 입고 합격률</div><span style="font-size:12px;color:var(--text2)">34건 중 31건 합격</span></div>
+      <div class="card-head"><div class="card-title">이번주 입고 합격률</div><span style="font-size:12px;color:var(--text2)" id="sum-rate-head">34건 중 31건 합격</span></div>
       <div style="display:flex;align-items:center;justify-content:center;gap:32px;padding:12px 0">
         <div style="position:relative;width:100px;height:100px">
           <svg viewBox="0 0 100 100" style="width:100%;height:100%;transform:rotate(-90deg)">
             <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border)" stroke-width="12"/>
-            <circle cx="50" cy="50" r="40" fill="none" stroke="var(--green)" stroke-width="12" stroke-dasharray="251.2" stroke-dashoffset="14.4" stroke-linecap="round"/>
+            <circle id="sum-rate-arc" cx="50" cy="50" r="40" fill="none" stroke="var(--green)" stroke-width="12" stroke-dasharray="251.2" stroke-dashoffset="14.4" stroke-linecap="round"/>
           </svg>
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <div style="font-size:18px;font-weight:700;color:var(--green)">91.2%</div>
+            <div style="font-size:18px;font-weight:700;color:var(--green)" id="sum-rate-pct">91.2%</div>
             <div style="font-size:10px;color:var(--text3)">합격률</div>
           </div>
         </div>
@@ -1063,27 +1025,27 @@ tr.row-flash td{animation:rowFlash 2.2s ease}
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--green)"></div>
             <span style="font-size:13px">합격</span>
-            <strong style="font-size:16px;margin-left:6px">31건</strong>
+            <strong id="sum-r-ok" style="font-size:16px;margin-left:6px">31건</strong>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--blue)"></div>
             <span style="font-size:13px">조건부</span>
-            <strong style="font-size:16px;margin-left:6px">1건</strong>
+            <strong id="sum-r-cond" style="font-size:16px;margin-left:6px">1건</strong>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--red)"></div>
             <span style="font-size:13px">불합격</span>
-            <strong style="font-size:16px;margin-left:6px">2건</strong>
+            <strong id="sum-r-ng" style="font-size:16px;margin-left:6px">2건</strong>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <div style="width:10px;height:10px;border-radius:50%;background:var(--amber)"></div>
             <span style="font-size:13px">검사중</span>
-            <strong style="font-size:16px;margin-left:6px">1건</strong>
+            <strong id="sum-r-ing" style="font-size:16px;margin-left:6px">1건</strong>
           </div>
         </div>
       </div>
       <div style="background:var(--blue-bg);border-radius:var(--radius);padding:10px 14px;font-size:12px;color:var(--blue-text);margin-top:4px">
-        전주 합격률 93.1% 대비 <strong>▼ 1.9%p</strong> 하락 — (주)테크노전자마산공장 PBA 불량 영향
+        <span id="sum-rate-note">전주 합격률 93.1% 대비 <strong>▼ 1.9%p</strong> 하락</span>
       </div>
     </div>
   </div>
@@ -1855,7 +1817,7 @@ function renderNcSummary(){
   set('sum-nc-prev', '전주 ' + prevW + '건');
   const delta = document.getElementById('sum-nc-delta');
   if (delta){
-    delta.className = 'wc-delta ' + (diff > 0 ? 'delta-up' : 'delta-dn');
+    delta.className = 'wc-delta ' + (diff > 0 ? 'delta-dn' : 'delta-up'); // 부적합 증가 = 빨강, 감소·동일 = 초록
     delta.textContent = diff > 0 ? `▲ +${diff}건 전주 대비 증가` : diff < 0 ? `▼ ${diff}건 전주 대비 개선` : '― 전주와 동일';
   }
   const wow = document.getElementById('sum-nc-wow');
@@ -1866,7 +1828,13 @@ function renderNcSummary(){
   const bars = document.getElementById('sum-nc-bars');
   if (bars){
     const mx = Math.max(1, ...weeks);
-    bars.innerHTML = weeks.map((v, i) => `<div class="wb" title="${['4주전','3주전','2주전','지난주','이번주'][i]} ${v}건" style="height:${Math.max(8, Math.round(v / mx * 100))}%;background:${i === 4 ? 'var(--red)' : 'var(--border2)'}"></div>`).join('');
+    bars.innerHTML = weeks.map((v, i) => `<div class="wb" style="height:${Math.max(8, Math.round(v / mx * 100))}%;background:${i === 4 ? 'var(--red)' : 'var(--border2)'}"></div>`).join('');
+    bars.dataset.info = JSON.stringify([4,3,2,1,0].map((k, i) => {
+      const st = new Date(monday); st.setDate(monday.getDate() - 7 * k);
+      const en = new Date(st); en.setDate(st.getDate() + 7);
+      const items = rows.filter(r => r.date && r.date >= st && r.date < en).map(r => `${r.seq} · ${r.vendor} ${r.pnum && r.pnum !== '—' ? r.pnum : ''} (${r.status})`);
+      return { n: weeks[i], unit: '부적합 발생', items };
+    }));
   }
 
 
@@ -1879,7 +1847,7 @@ function renderNcSummary(){
     set('sum-ca-sub', '검토·승인대기 ' + reviewing + '건');
     const cd = document.getElementById('sum-ca-delta');
     if (cd){
-      cd.className = 'wc-delta ' + (missing.length ? 'delta-up' : 'delta-dn');
+      cd.className = 'wc-delta ' + (missing.length ? 'delta-dn' : 'delta-up'); // 미접수 있음 = 빨강
       cd.textContent = missing.length ? `미결 부적합 ${open.length}건 중 ${missing.length}건 미접수` : '✓ 미결 부적합 모두 대책서 접수';
       cd.title = missing.map(r => r.seq + ' ' + r.vendor).join('\n');
     }
@@ -1891,7 +1859,13 @@ function renderNcSummary(){
         return caStore.filter(c => { const d = _ncParseDate(c.date, today); return d && d >= st && d < en; }).length;
       });
       const mx = Math.max(1, ...wk);
-      cb.innerHTML = wk.map((v, i) => `<div class="wb" title="${['4주전','3주전','2주전','지난주','이번주'][i]} 대책서 접수 ${v}건" style="height:${Math.max(8, Math.round(v / mx * 100))}%;background:${i === 4 ? 'var(--amber)' : 'var(--border2)'}"></div>`).join('');
+      cb.innerHTML = wk.map((v, i) => `<div class="wb" style="height:${Math.max(8, Math.round(v / mx * 100))}%;background:${i === 4 ? 'var(--amber)' : 'var(--border2)'}"></div>`).join('');
+      cb.dataset.info = JSON.stringify([4,3,2,1,0].map((k, i) => {
+        const st = new Date(monday); st.setDate(monday.getDate() - 7 * k);
+        const en = new Date(st); en.setDate(st.getDate() + 7);
+        const items = caStore.filter(c => { const d = _ncParseDate(c.date, today); return d && d >= st && d < en; }).map(c => `${c.num} · ${c.vendor} (${c.status})`);
+        return { n: wk[i], unit: '대책서 접수', items };
+      }));
     }
     // 진행중인 업무 중 삭제된 대책서를 가리키는 항목은 숨김
     const caTxt = caStore.map(c => c.vendor + ' ' + c.num).join(' ');
@@ -1919,6 +1893,8 @@ function renderNcSummary(){
     if (m) el.style.display = allTxt.includes(m[1]) ? '' : 'none';
   });
   renderTasks();
+  renderIqcSummary();
+  decorateWeekBars();
   if (rows.length > 5) list.innerHTML += `<div style="font-size:11px;color:var(--text3);padding-top:8px">외 ${rows.length - 5}건 — <a href="#" onclick="goToItem('nonconf','');return false" style="color:var(--blue)">전체 보기</a></div>`;
 }
 (function(){
@@ -1982,6 +1958,179 @@ function renderTasks(){
     || '<div style="padding:22px;text-align:center;color:var(--text3);font-size:13px">진행중인 업무가 없습니다 ✨</div>';
   if (tasks.length > 6) box.innerHTML += `<div style="font-size:11px;color:var(--text3);padding-top:8px">외 ${tasks.length - 6}건</div>`;
 }
+
+/* ── 주간 막대: 아래에 날짜·요일 표시, 막대를 누르면 그 주 정보 표시 ── */
+const _WK_NAMES = ['4주전','3주전','2주전','지난주','이번주'];
+const _DOW = ['일','월','화','수','목','금','토'];
+function _weekRanges(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const monday = new Date(today); monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  return [4,3,2,1,0].map(k => {
+    const st = new Date(monday); st.setDate(monday.getDate() - 7 * k);
+    const en = new Date(st); en.setDate(st.getDate() + 6);
+    return { st, en };
+  });
+}
+const _md = d => `${d.getMonth() + 1}/${d.getDate()}(${_DOW[d.getDay()]})`;
+function decorateWeekBars(){
+  const ranges = _weekRanges();
+  document.querySelectorAll('#sec-iqc-dash .week-bars').forEach(wb => {
+    let lab = wb.nextElementSibling;
+    if (!lab || !lab.classList.contains('wb-labels')) { lab = document.createElement('div'); lab.className = 'wb-labels'; wb.after(lab); }
+    lab.innerHTML = ranges.map((r, i) => `<div class="${i === 4 ? 'now' : ''}">${_md(r.st)}<br>~${_md(r.en)}</div>`).join('');
+    if (!wb.dataset.clickReady) {
+      wb.dataset.clickReady = '1';
+      wb.title = '막대를 누르면 그 주 정보를 볼 수 있습니다';
+      wb.addEventListener('click', e => {
+        const bar = e.target.closest('.wb'); if (!bar) return;
+        e.stopPropagation();
+        _showWeekPop(wb, [...wb.querySelectorAll('.wb')].indexOf(bar), bar);
+      });
+    }
+  });
+}
+function _showWeekPop(wb, i, bar){
+  if (i < 0) return;
+  let pop = document.getElementById('wb-pop');
+  if (!pop) { pop = document.createElement('div'); pop.id = 'wb-pop'; document.body.appendChild(pop); }
+  document.querySelectorAll('.wb.sel').forEach(x => x.classList.remove('sel'));
+  bar.classList.add('sel');
+  const r = _weekRanges()[i];
+  const card = wb.closest('.wc-card');
+  const metric = (card?.querySelector('.wc-label')?.textContent || '').trim().replace(/^이번주\s*/, '');
+  const esc = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  let body;
+  if (wb.dataset.info) {
+    const info = JSON.parse(wb.dataset.info)[i] || { n: 0, items: [] };
+    body = `<div class="wp-n">${esc(info.unit || metric)} <b>${info.n}건</b></div>` +
+      (info.items.length ? `<div class="wp-items">${info.items.slice(0, 6).map(x => '• ' + esc(x)).join('<br>')}${info.items.length > 6 ? `<br>외 ${info.items.length - 6}건` : ''}</div>` : '');
+  } else {
+    body = `<div class="wp-n">${esc(metric)}</div><div class="wp-items" style="color:var(--amber-text)">※ 예시 값(고정) — 입고 검사 데이터와 아직 연동되지 않았습니다</div>`;
+  }
+  pop.innerHTML = `<div class="wp-t">${_WK_NAMES[i]} · ${_md(r.st)} ~ ${_md(r.en)}</div>${body}`;
+  pop.style.display = 'block';
+  const br = bar.getBoundingClientRect();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = br.left + br.width / 2 - pw / 2 + window.scrollX;
+  left = Math.max(8, Math.min(left, window.scrollX + document.documentElement.clientWidth - pw - 8));
+  pop.style.left = left + 'px';
+  pop.style.top = (br.top + window.scrollY - ph - 8) + 'px';
+}
+document.addEventListener('click', () => {
+  const pop = document.getElementById('wb-pop'); if (pop) pop.style.display = 'none';
+  document.querySelectorAll('.wb.sel').forEach(x => x.classList.remove('sel'));
+});
+document.addEventListener('scroll', () => { const pop = document.getElementById('wb-pop'); if (pop) pop.style.display = 'none'; }, true);
+
+
+/* ── 현황 요약 ↔ 입고 검사 연동 (입고 검사 표를 읽어 실시간 계산) ── */
+function _iqcRows(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tb = document.querySelector('#sec-incoming table tbody'); if (!tb) return [];
+  const txt = td => (td ? td.textContent.replace(/[✏️📎🗑️]/gu,'').trim() : '');
+  return [...tb.rows].filter(tr => tr.cells.length >= 9).map(tr => {
+    let res = txt(tr.cells[8]); if (res === '조건부합격') res = '조건부';
+    return { seq: txt(tr.cells[0]), date: _ncParseDate(txt(tr.cells[1]), today), dateTxt: txt(tr.cells[1]),
+             vendor: txt(tr.cells[2]), pname: txt(tr.cells[4]) || txt(tr.cells[3]), result: res };
+  });
+}
+function renderIqcSummary(){
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const html = (id, v) => { const el = document.getElementById(id); if (el) el.innerHTML = v; };
+  const rows = _iqcRows();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 : null;
+  const judged = rs => rs.filter(r => r.result !== '검사중');
+  const ok = rs => rs.filter(r => r.result === '합격');
+
+  // 이번달 / 전월
+  const ms = new Date(today.getFullYear(), today.getMonth(), 1);
+  const pms = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const inMonth = rows.filter(r => r.date && r.date >= ms);
+  const inPrevM = rows.filter(r => r.date && r.date >= pms && r.date < ms);
+  const dm = inMonth.length - inPrevM.length;
+  set('sum-in-month', inMonth.length);
+  set('sum-in-month-sub', `전월 대비 ${dm > 0 ? '+' : ''}${dm}건 (${today.getMonth() + 1}월)`);
+  const mr = pct(ok(inMonth).length, judged(inMonth).length);
+  set('sum-pass-rate', mr === null ? '—' : mr + '%');
+  set('sum-pass-sub', mr === null ? '이번달 판정 없음 · 목표 95%' : (mr >= 95 ? '✓ 목표 95% 달성' : `목표 95% (${Math.round((95 - mr) * 10) / 10}%p 부족)`));
+
+  // 주별 (월요일 시작, 최근 5주)
+  const ranges = _weekRanges();
+  const wk = ranges.map(r => { const en = new Date(r.en); en.setDate(en.getDate() + 1); return rows.filter(x => x.date && x.date >= r.st && x.date < en); });
+  const inN = wk.map(w => w.length), okN = wk.map(w => ok(w).length);
+  const mkBars = (id, vals, color, unit, lists) => {
+    const el = document.getElementById(id); if (!el) return;
+    const mx = Math.max(1, ...vals);
+    el.innerHTML = vals.map((v, i) => `<div class="wb" style="height:${Math.max(8, Math.round(v / mx * 100))}%;background:${i === 4 ? color : 'var(--border2)'}"></div>`).join('');
+    el.dataset.info = JSON.stringify(vals.map((v, i) => ({ n: v, unit, items: lists[i].map(r => `${r.seq} · ${r.vendor} ${r.pname} (${r.result})`) })));
+  };
+  mkBars('sum-in-bars', inN, 'var(--blue)', '입고', wk);
+  mkBars('sum-ok-bars', okN, 'var(--green)', '합격', wk.map(ok));
+  set('sum-in-week', inN[4]); set('sum-in-prev', '전주 ' + inN[3] + '건');
+  set('sum-ok-week', okN[4]); set('sum-ok-prev', '전주 ' + okN[3] + '건');
+  const di = inN[4] - inN[3];
+  const de = document.getElementById('sum-in-delta');
+  if (de) { de.className = 'wc-delta ' + (di >= 0 ? 'delta-up' : 'delta-dn');
+    de.textContent = di === 0 ? '― 전주와 동일' : `${di > 0 ? '▲ +' : '▼ '}${di}건${inN[3] ? ' ' + (di > 0 ? '+' : '') + Math.round(di / inN[3] * 1000) / 10 + '%' : ''}`; }
+  const wr = pct(okN[4], judged(wk[4]).length), pr = pct(okN[3], judged(wk[3]).length);
+  const dok = okN[4] - okN[3];
+  const dd = document.getElementById('sum-ok-delta');
+  if (dd) { dd.className = 'wc-delta ' + (wr === null || wr >= 95 ? 'delta-up' : 'delta-dn');
+    dd.textContent = `${dok > 0 ? '▲ +' + dok + '건' : dok < 0 ? '▼ ' + dok + '건' : '― 전주와 동일'} · 합격률 ${wr === null ? '—' : wr + '%'}`; }
+
+  // 이번주 합격률 원형
+  const w = wk[4], cnt = k => w.filter(r => r.result === k).length;
+  const c = { ok: cnt('합격'), cond: cnt('조건부'), ng: cnt('불합격'), ing: cnt('검사중') };
+  set('sum-rate-head', `${w.length}건 중 ${c.ok}건 합격`);
+  set('sum-r-ok', c.ok + '건'); set('sum-r-cond', c.cond + '건'); set('sum-r-ng', c.ng + '건'); set('sum-r-ing', c.ing + '건');
+  set('sum-rate-pct', wr === null ? '—' : wr + '%');
+  const arc = document.getElementById('sum-rate-arc');
+  if (arc) { arc.setAttribute('stroke-dashoffset', String(251.2 * (1 - (wr || 0) / 100)));
+    arc.setAttribute('stroke', wr === null || wr >= 95 ? 'var(--green)' : wr >= 85 ? 'var(--amber)' : 'var(--red)'); }
+  const pe = document.getElementById('sum-rate-pct'); if (pe) pe.style.color = wr === null || wr >= 95 ? 'var(--green)' : wr >= 85 ? 'var(--amber)' : 'var(--red)';
+  if (wr === null || pr === null) html('sum-rate-note', wr === null ? '이번주 판정 완료된 입고 검사가 없습니다' : `이번주 합격률 <strong>${wr}%</strong> (전주 판정 없음)`);
+  else { const g = Math.round((wr - pr) * 10) / 10;
+    const ngV = [...new Set(w.filter(r => r.result === '불합격').map(r => r.vendor))].slice(0, 2).join(', ');
+    html('sum-rate-note', `전주 합격률 ${pr}% 대비 <strong>${g > 0 ? '▲ ' + g + '%p 상승' : g < 0 ? '▼ ' + (-g) + '%p 하락' : '변동 없음'}</strong>${ngV ? ' — 불합격: ' + ngV : ''}`); }
+
+  // 주차별 입고 vs 부적합
+  const tr = document.getElementById('sum-trend');
+  if (tr) {
+    const ncRows = (typeof _ncRows === 'function') ? _ncRows() : [];
+    const ncN = ranges.map(r => { const en = new Date(r.en); en.setDate(en.getDate() + 1); return ncRows.filter(x => x.date && x.date >= r.st && x.date < en).length; });
+    const mi = Math.max(1, ...inN), mn = Math.max(1, ...ncN);
+    tr.innerHTML = ranges.map((r, i) => {
+      const now = i === 4;
+      const ncClr = ncN[i] === 0 ? ['var(--green-bg)','var(--green)','var(--green-text)'] : ncN[i] >= Math.max(3, mn * .8) ? ['var(--red-bg)','var(--red)','var(--red-text)'] : ['var(--amber-bg)','var(--amber)','var(--amber-text)'];
+      return `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
+        <span style="width:74px;text-align:right;flex-shrink:0;line-height:1.25;${now ? 'font-weight:700;color:var(--text)' : 'color:var(--text2)'}">${_WK_NAMES[i]}<br><span style="font-size:9.5px;font-weight:400;color:var(--text3)">${r.st.getMonth()+1}/${r.st.getDate()}~${r.en.getMonth()+1}/${r.en.getDate()}</span></span>
+        <div style="flex:1;display:flex;align-items:center">${inN[i] ? `<div style="height:${now ? 22 : 18}px;border-radius:3px;background:var(--blue);width:${Math.max(14, Math.round(inN[i] / mi * 100))}%;display:flex;align-items:center;padding:0 6px;color:#fff;font-size:11px;font-weight:${now ? 700 : 600};white-space:nowrap">${inN[i]}건</div>` : '<span style="font-size:11px;color:var(--text3)">0건</span>'}</div>
+        <div style="flex:1;display:flex;align-items:center">${ncN[i] ? `<div style="height:${now ? 22 : 18}px;border-radius:3px;background:${ncClr[0]};border:1px solid ${ncClr[1]};width:${Math.max(14, Math.round(ncN[i] / mn * 100))}%;display:flex;align-items:center;padding:0 6px;color:${ncClr[2]};font-size:11px;font-weight:${now ? 700 : 600};white-space:nowrap">${ncN[i]}건</div>` : '<span style="font-size:11px;color:var(--green-text)">0건</span>'}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // 등록 협력사
+  if (typeof vendorStore !== 'undefined') {
+    set('sum-vendors', vendorStore.length + '개');
+    set('sum-vendors-a', 'A등급 ' + vendorStore.filter(v => v.grade === 'A').length + '개사');
+  }
+}
+
+/* 기준 날짜·시간: 1분마다 갱신, 날짜가 바뀌면 요약 전체 다시 계산 */
+let _sumDay = '';
+function _tickClock(){
+  const n = new Date();
+  const d = `${n.getFullYear()}년 ${n.getMonth() + 1}월 ${n.getDate()}일(${_DOW[n.getDay()]}) ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+  const el = document.getElementById('sum-hero-date');
+  if (el) el.textContent = 'Incoming Quality Control · ' + d + ' 기준 (실시간)';
+  const day = n.toDateString();
+  if (_sumDay && _sumDay !== day) refreshSummarySoon();
+  _sumDay = day;
+}
+_tickClock(); setInterval(_tickClock, 30000);
+
 let _sumTimer = null;
 function refreshSummarySoon(){ clearTimeout(_sumTimer); _sumTimer = setTimeout(() => { if (typeof renderNcSummary === 'function') renderNcSummary(); }, 120); }
 
@@ -3430,6 +3579,7 @@ function renderVendorTable() {
 
 function updateVendorBadges() {
   _vendorMaybeSync();
+  if (typeof refreshSummarySoon === 'function') refreshSummarySoon();
   const total = vendorStore.length;
   const cnt = g => vendorStore.filter(v=>v.grade===g).length;
   const el = id => document.getElementById(id);
