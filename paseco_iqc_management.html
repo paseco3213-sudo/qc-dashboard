@@ -512,6 +512,16 @@ tbody tr:hover td { background: var(--bg); }
 .qd .qd-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .qd .page { padding-bottom: 24px; }
 .qd .kpi-grid, .qd .charts-row, .qd .monthly-charts { margin-bottom: 14px; }
+.qd .vd-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin-top: 6px; }
+.qd .vd-form label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; font-weight: 600; color: var(--txt-sub); }
+.qd .vd-form label.full { grid-column: 1 / -1; }
+.qd .vd-form input, .qd .vd-form select, .qd .vd-form textarea { border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px; font-size: 13px; font-family: var(--font); color: var(--txt); background: #fff; outline: none; font-weight: 400; }
+.qd .vd-form input:focus, .qd .vd-form select:focus, .qd .vd-form textarea:focus { border-color: var(--blue); }
+.qd .vd-recur { font-size: 12px; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: none; }
+.qd .vd-recur.on { display: block; background: var(--red-l); color: var(--red); border: 1px solid #FECACA; }
+.qd .vd-recur.ok { display: block; background: var(--green-l); color: var(--green); border: 1px solid #A7F3D0; }
+.qd .vd-btn { padding: 4px 10px; font-size: 11px; border-radius: 6px; border: 1px solid var(--border); background: #fff; color: var(--blue); cursor: pointer; font-family: var(--font); white-space: nowrap; }
+.qd .vd-btn:hover { border-color: var(--blue); background: var(--blue-l); }
 @media (max-width: 1100px) { .qd .kpi-grid { grid-template-columns: repeat(2,1fr); } .qd .charts-row, .qd .monthly-charts { grid-template-columns: 1fr !important; } }
 
 </style>
@@ -658,6 +668,7 @@ tbody tr:hover td { background: var(--bg); }
       <div class="qd-tab active" onclick="QD.gotoPage('monthly-view',this)">현황</div>
       <div class="qd-tab" onclick="QD.gotoPage('list',this)">전체 리스트</div>
       <div class="qd-tab" onclick="QD.gotoPage('partner',this)">협력사 분석</div>
+      <div class="qd-tab" onclick="QD.gotoPage('valid',this)">유효성 확인</div>
     </div>
     <div class="qd-tools">
       <div class="month-tabs" id="month-tabs">
@@ -767,6 +778,39 @@ tbody tr:hover td { background: var(--bg); }
           <table>
             <thead><tr><th>협력사</th><th>불량 건수</th><th>총 LOT</th><th>총 불량수</th><th>평균 불량율</th><th>주요 불량유형</th><th>평가 등급</th></tr></thead>
             <tbody id="partner-tbl"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PAGE: 유효성 확인 (대책 유효성 검증) ══ -->
+    <div class="page" id="page-valid">
+      <div class="kpi-grid" id="vd-kpi"></div>
+      <div class="filter-bar">
+        <select id="vd-status" onchange="QD.renderValid()">
+          <option value="">전체 상태</option>
+          <option value="미확인">미확인</option>
+          <option value="확인중">확인중</option>
+          <option value="유효">유효</option>
+          <option value="무효">무효</option>
+          <option value="재발">재발 발생</option>
+        </select>
+        <select id="vd-partner" onchange="QD.renderValid()"><option value="">전체 협력사</option></select>
+        <div class="search-wrap">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input class="search-input" id="vd-search" placeholder="부품명·불량내용 검색..." oninput="QD.renderValid()">
+        </div>
+        <span class="filter-count" id="vd-count"></span>
+      </div>
+      <div class="tbl-card">
+        <div class="tbl-head-row">
+          <div style="font-size:13px;font-weight:600">대책 유효성 확인 현황</div>
+          <span style="font-size:11px;color:var(--txt-dim)">재발 = 같은 협력사·같은 부품에서 이후 불량이 다시 발생 · 기준: 대책 후 <span id="vd-target-lbl">3</span> LOT 연속 양호</span>
+        </div>
+        <div class="tbl-scroll" style="max-height:560px">
+          <table>
+            <thead><tr><th>월</th><th>발생일</th><th>협력사</th><th>부품명</th><th>불량내용</th><th>조치내용</th><th>재발</th><th>확인 LOT</th><th>상태</th><th>확인일</th><th>확인자</th><th></th></tr></thead>
+            <tbody id="vd-tbl"></tbody>
           </table>
         </div>
       </div>
@@ -3021,11 +3065,14 @@ function processSheetData(csv, replace, filename, showResult) {
 function syncVendorDropdowns() {
   const names = vendorStore.map(v => v.name);
   document.querySelectorAll('select').forEach(sel => {
+    if (sel.closest('.qd')) return; // 수입 불량 현황 영역의 필터는 자체 데이터로 채움
     const opts = Array.from(sel.options).map(o => o.value || o.text);
+    const firstTxt = (sel.options[0]?.text || '').trim();
+    // 업체 선택 상자만 대상 ('전체 상태'·'전체 유형' 같은 다른 필터를 업체 목록으로 덮어쓰던 문제 수정)
     const isVendorSel = opts.some(o => names.includes(o)) ||
-      sel.previousElementSibling?.textContent?.includes('업체') ||
+      (sel.previousElementSibling && !['SELECT','INPUT','BUTTON'].includes(sel.previousElementSibling.tagName) && sel.previousElementSibling.textContent.includes('업체')) ||
       sel.id?.includes('vendor') ||
-      (sel.options[0] && ['전체 업체','(주)테크노','수신 업체'].some(k => sel.options[0].text.includes(k.slice(0,3))));
+      firstTxt === '전체 업체' || firstTxt.startsWith('(주)테크노');
     if (!isVendorSel) return;
 
     const first = sel.options[0];
@@ -3624,6 +3671,33 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="modal-bg" id="vd-modal">
+  <div class="modal" style="width:520px">
+    <div class="modal-title">유효성 확인 등록</div>
+    <div class="modal-sub" id="vd-m-sub"></div>
+    <div class="vd-recur" id="vd-m-recur"></div>
+    <div class="vd-form">
+      <label>확인 상태
+        <select id="vd-m-status">
+          <option value="미확인">미확인</option>
+          <option value="확인중">확인중</option>
+          <option value="유효">유효 (대책 효과 확인)</option>
+          <option value="무효">무효 (대책 미흡 · 재대책 필요)</option>
+        </select>
+      </label>
+      <label>양호 확인 LOT 수
+        <div style="display:flex;align-items:center;gap:6px"><input type="number" id="vd-m-lots" min="0" max="99" style="width:80px"> <span>/</span> <input type="number" id="vd-m-target" min="1" max="99" style="width:80px"> <span style="font-size:11px;color:var(--txt-dim)">LOT</span></div>
+      </label>
+      <label>확인일 <input type="date" id="vd-m-date"></label>
+      <label>확인자 <input type="text" id="vd-m-who" placeholder="이름"></label>
+      <label class="full">확인 내용 / 메모 <textarea id="vd-m-memo" rows="3" placeholder="예: 7/20·7/27·8/3 입고 LOT 외관 전수 확인 결과 이상 없음"></textarea></label>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="QD.closeValid()">취소</button>
+      <button class="btn btn-primary" id="vd-m-save" onclick="QD.saveValid()">저장</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="trend-modal">
   <div class="modal trend-modal">
     <div class="modal-title" id="trend-title">협력사 월별 트렌드</div>
@@ -3679,6 +3753,7 @@ function gotoPage(p, el) {
     runFilter();
   }
   else if (p === 'partner') renderPartner();
+  else if (p === 'valid') renderValid();
 }
 
 // ═══ Month switch ═══
@@ -3700,6 +3775,7 @@ function refreshCurrentPage() {
     runFilter();
   }
   else if (activePage.id === 'page-partner') renderPartner();
+  else if (activePage.id === 'page-valid') renderValid();
 }
 
 // ═══ Monthly View ═══
@@ -4451,8 +4527,170 @@ function doExportCSV() {
   toast('CSV 저장 완료!');
 }
 
+
+// ═══ 유효성 확인 (대책 유효성 검증) ═══
+// 불량 1건마다 '대책 후 n LOT 양호' 여부를 기록하고, 같은 협력사·부품에서 이후 불량이 또 나오면 재발로 자동 표시
+const VD_COLL = 'qc_validation';
+const VD_DEFAULT_TARGET = 3;
+let VALID = {};        // docId → 확인 기록
+let _vdEditing = null; // 편집 중인 불량 행
+
+const MONTH_IDX = m => ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'].indexOf(m);
+function vdOrder(r) {                    // 정렬·재발 비교용 (월*100 + 일)
+  const mi = MONTH_IDX(r.month);
+  const d = String(r.date || '').match(/(\d{1,2})\D+(\d{1,2})/);
+  const day = d ? parseInt(d[2]) : 0;
+  return (mi < 0 ? 99 : mi) * 100 + day;
+}
+const vdNorm = v => String(v || '').replace(/\s+/g, '').toLowerCase();
+function vdId(r) {                       // 행 내용 → Firestore 문서 id (짧은 해시)
+  const k = rowKey(r);
+  let h1 = 0x811c9dc5, h2 = 0;
+  for (let i = 0; i < k.length; i++) { const c = k.charCodeAt(i); h1 = Math.imul(h1 ^ c, 16777619); h2 = (h2 * 31 + c) | 0; }
+  return 'v_' + (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36);
+}
+function vdRecurrences(r, all) {         // 이 불량 이후 같은 협력사·같은 부품에서 다시 발생한 건
+  const o = vdOrder(r), p = vdNorm(r.partner), pt = vdNorm(r.part);
+  if (!pt) return [];
+  return all.filter(x => x !== r && vdNorm(x.partner) === p && vdNorm(x.part) === pt && vdOrder(x) > o);
+}
+function vdStatusOf(r, all) {
+  const rec = VALID[vdId(r)];
+  const recur = vdRecurrences(r, all);
+  return { rec, recur, status: rec ? rec.status : '미확인' };
+}
+const VD_BADGE = { '미확인': 'b-amber', '확인중': 'b-blue', '유효': 'b-green', '무효': 'b-red' };
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let _vdRows = [];
+function renderValid() {
+  const all = getAllRows();
+  const rows = getMonthRows(curMonth).slice().sort((a, b) => vdOrder(b) - vdOrder(a));
+  const fs = document.getElementById('vd-status').value;
+  const fp = document.getElementById('vd-partner').value;
+  const q = document.getElementById('vd-search').value.toLowerCase();
+
+  // 협력사 필터 목록 (선택값 유지)
+  const parts = [...new Set(rows.map(r => r.partner))].sort();
+  const pSel = document.getElementById('vd-partner');
+  pSel.innerHTML = '<option value="">전체 협력사</option>' + parts.map(p => `<option${p === fp ? ' selected' : ''}>${esc(p)}</option>`).join('');
+
+  const info = rows.map(r => ({ r, ...vdStatusOf(r, all) }));
+  const cnt = { total: info.length, done: 0, ing: 0, todo: 0, recur: 0 };
+  info.forEach(x => {
+    if (x.status === '유효') cnt.done++; else if (x.status === '확인중') cnt.ing++; else if (x.status !== '무효') cnt.todo++;
+    if (x.recur.length) cnt.recur++;
+  });
+  const pct = cnt.total ? Math.round(cnt.done / cnt.total * 100) : 0;
+  const kpi = (accent, light, lbl, val, unit, sub) => `
+    <div class="kpi" style="--accent:var(${accent});--accent-l:var(${light})">
+      <div class="kpi-lbl">${lbl}</div>
+      <div class="kpi-val">${val}<span class="kpi-unit">${unit}</span></div>
+      <div class="kpi-sub">${sub}</div>
+    </div>`;
+  document.getElementById('vd-kpi').innerHTML =
+    kpi('--blue', '--blue-l', '확인 대상', cnt.total, '건', curMonth + ' 불량 기준') +
+    kpi('--green', '--green-l', '유효 확인 완료', cnt.done, '건', '완료율 ' + pct + '%') +
+    kpi('--amber', '--amber-l', '미확인 · 확인중', cnt.todo + cnt.ing, '건', '확인중 ' + cnt.ing + '건 포함') +
+    kpi('--red', '--red-l', '재발 발생', cnt.recur, '건', '동일 협력사·부품 재발생');
+
+  _vdRows = info.filter(x =>
+    (!fp || x.r.partner === fp) &&
+    (!fs || (fs === '재발' ? x.recur.length > 0 : x.status === fs)) &&
+    (!q || String(x.r.part).toLowerCase().includes(q) || String(x.r.detail).toLowerCase().includes(q))
+  );
+  document.getElementById('vd-count').textContent = `${_vdRows.length} / ${info.length}건`;
+  document.getElementById('vd-tbl').innerHTML = _vdRows.map((x, i) => {
+    const r = x.r, rec = x.rec || {};
+    const target = rec.target || VD_DEFAULT_TARGET;
+    const lots = rec.lots ?? 0;
+    const recurCell = x.recur.length
+      ? `<span class="badge b-red" title="${esc(x.recur.map(y => y.month + ' ' + y.date + ' ' + y.detail).join('\n'))}">재발 ${x.recur.length}건</span>`
+      : '<span style="color:var(--txt-dim);font-size:11px">없음</span>';
+    return `<tr>
+      <td><span class="badge b-teal">${esc(r.month)}</span></td>
+      <td class="mono">${esc(r.date)}</td>
+      <td style="white-space:nowrap">${esc(r.partner)}</td>
+      <td style="font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.part)}">${esc(r.part)}</td>
+      <td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.detail)}">${esc(r.detail)}</td>
+      <td style="font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--txt-sub)" title="${esc(r.action)}">${esc(r.action)}</td>
+      <td>${recurCell}</td>
+      <td class="mono" style="font-size:11px">${lots} / ${target}</td>
+      <td><span class="badge ${VD_BADGE[x.status] || 'b-blue'}">${esc(x.status)}</span></td>
+      <td class="mono" style="font-size:11px">${esc(rec.date || '—')}</td>
+      <td style="font-size:11px">${esc(rec.who || '—')}</td>
+      <td><button class="vd-btn" onclick="QD.openValid(${i})">${x.rec ? '수정' : '확인 등록'}</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--txt-dim)">해당 조건의 불량 건이 없습니다</td></tr>';
+}
+
+function openValid(i) {
+  const x = _vdRows[i]; if (!x) return;
+  _vdEditing = x.r;
+  const rec = x.rec || {};
+  document.getElementById('vd-m-sub').textContent = `${x.r.month} ${x.r.date} · ${x.r.partner} · ${x.r.part} — ${x.r.detail}`;
+  const rb = document.getElementById('vd-m-recur');
+  if (x.recur.length) {
+    rb.className = 'vd-recur on';
+    rb.textContent = '⚠ 이후 재발 ' + x.recur.length + '건: ' + x.recur.slice(0, 3).map(y => y.month + ' ' + y.date + ' ' + y.detail).join(' / ') + (x.recur.length > 3 ? ' …' : '');
+  } else {
+    rb.className = 'vd-recur ok';
+    rb.textContent = '✓ 이후 같은 협력사·부품에서 재발 이력 없음';
+  }
+  document.getElementById('vd-m-status').value = rec.status || (x.recur.length ? '무효' : '확인중');
+  document.getElementById('vd-m-lots').value = rec.lots ?? 0;
+  document.getElementById('vd-m-target').value = rec.target || VD_DEFAULT_TARGET;
+  document.getElementById('vd-m-date').value = rec.date || new Date().toISOString().slice(0, 10);
+  document.getElementById('vd-m-who').value = rec.who || '';
+  document.getElementById('vd-m-memo').value = rec.memo || '';
+  document.getElementById('vd-modal').classList.add('open');
+}
+function closeValid() { document.getElementById('vd-modal').classList.remove('open'); _vdEditing = null; }
+
+async function saveValid() {
+  const r = _vdEditing; if (!r) return;
+  const lots = parseInt(document.getElementById('vd-m-lots').value) || 0;
+  const target = parseInt(document.getElementById('vd-m-target').value) || VD_DEFAULT_TARGET;
+  let status = document.getElementById('vd-m-status').value;
+  const rec = {
+    key: rowKey(r), month: r.month, date_occ: r.date, partner: r.partner, part: r.part, detail: r.detail,
+    status, lots, target,
+    date: document.getElementById('vd-m-date').value,
+    who: document.getElementById('vd-m-who').value.trim(),
+    memo: document.getElementById('vd-m-memo').value.trim(),
+  };
+  const id = vdId(r);
+  const btn = document.getElementById('vd-m-save');
+  btn.disabled = true;
+  VALID[id] = rec;            // 화면에는 바로 반영
+  closeValid();
+  renderValid();
+  try {
+    await fbDb.collection(VD_COLL).doc(id).set(Object.assign({}, rec, { updatedAt: firebase.firestore.FieldValue.serverTimestamp() }));
+    toast('☁️ 유효성 확인 저장 완료');
+  } catch (err) {
+    console.error('유효성 확인 저장 실패', err);
+    const code = (err && err.code) ? err.code : 'unknown';
+    toast('❌ 유효성 확인 저장 실패: ' + code + (code === 'permission-denied' ? ' (Firestore 보안 규칙 확인 필요)' : '') + ' — 새로고침하면 사라집니다', true);
+  } finally { btn.disabled = false; }
+}
+
+async function _loadValid() {
+  try {
+    const snap = await fbDb.collection(VD_COLL).get();
+    snap.docs.forEach(d => { VALID[d.id] = d.data(); });
+    return snap.docs.length;
+  } catch (err) {
+    console.error('유효성 확인 불러오기 실패', err);
+    return 0;
+  }
+}
+
 // ═══ Init ═══
 let _shown = false;
+_loadValid().then(n => {
+  if (n > 0 && _shown) { const a = document.querySelector('#sec-defect .page.active'); if (a && a.id === 'page-valid') renderValid(); }
+});
 let _cloudLoaded = _loadCloudRows().then(count => {
   if (count > 0) {
     filtered = getAllRows();
@@ -4469,7 +4707,7 @@ function onShow() {
   refreshCurrentPage();
 }
 
-window.QD = { gotoPage, changeMonth, doExportCSV, openModal, closeModal, applyUpload, handleFile, runFilter, resetFilters, openTrendModal, closeTrendModal, onShow };
+window.QD = { gotoPage, changeMonth, doExportCSV, openModal, closeModal, applyUpload, handleFile, runFilter, resetFilters, openTrendModal, closeTrendModal, onShow, renderValid, openValid, closeValid, saveValid };
 })();
 </script>
 </body>
