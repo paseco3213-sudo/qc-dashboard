@@ -1043,11 +1043,8 @@ tr.row-flash td{animation:rowFlash 2.2s ease}
   <!-- 진행중 업무 + 알림 -->
   <div class="row2">
     <div class="card">
-      <div class="card-head"><div class="card-title">진행중인 업무</div></div>
-      <div class="tl-row go-row" onclick="goToItem('caplan','동일전자')" title="대책서에서 보기"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-body"><div class="tl-title">동일전자(주) 대책서 접수 완료</div><div class="tl-time">2026.04.07 09:30</div></div><span class="badge b-green">완료</span></div>
-      <div class="tl-row go-row" onclick="goToItem('nonconf','PBA-H001')" title="부적합 관리에서 보기"><div class="tl-dot" style="background:var(--blue)"></div><div class="tl-body"><div class="tl-title">(주)테크노전자마산공장 PBA-H001 대책서 요청 발송</div><div class="tl-time">2026.04.07 11:00</div></div><span class="badge b-blue">진행</span></div>
-      <div class="tl-row go-row" onclick="goToItem('change','동아콘트롤')" title="변경점 관리에서 보기"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-body"><div class="tl-title">동아콘트롤 변경점 통보 검토 필요</div><div class="tl-time">만료 D-2</div></div><span class="badge b-amber">긴급</span></div>
-      <div class="tl-row go-row" onclick="goToItem('sup-eval','')" title="정기 평가에서 보기"><div class="tl-dot" style="background:var(--border2)"></div><div class="tl-body"><div class="tl-title">4월 정기 업체 평가 예정</div><div class="tl-time">2026.04.15</div></div><span class="badge b-gray">예정</span></div>
+      <div class="card-head"><div class="card-title">진행중인 업무 <span style="font-size:11px;font-weight:400;color:var(--text3)">(부적합·대책서·변경점·개선요청에서 자동 생성)</span></div><span class="badge b-blue" id="sum-task-count">0건</span></div>
+      <div id="sum-task-list"></div>
     </div>
     <div class="card">
       <div class="card-head"><div class="card-title">이번주 입고 합격률</div><span style="font-size:12px;color:var(--text2)">34건 중 31건 합격</span></div>
@@ -1921,6 +1918,7 @@ function renderNcSummary(){
     const m = (el.getAttribute('onclick') || '').match(/goToItem\('nonconf','([^']+)'\)/);
     if (m) el.style.display = allTxt.includes(m[1]) ? '' : 'none';
   });
+  renderTasks();
   if (rows.length > 5) list.innerHTML += `<div style="font-size:11px;color:var(--text3);padding-top:8px">외 ${rows.length - 5}건 — <a href="#" onclick="goToItem('nonconf','');return false" style="color:var(--blue)">전체 보기</a></div>`;
 }
 (function(){
@@ -1933,6 +1931,59 @@ function renderNcSummary(){
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
+
+
+/* ── 진행중인 업무: 각 메뉴의 실제 데이터에서 할 일을 자동으로 만듦 (항목을 지우거나 완료하면 목록에서 사라짐) ── */
+function renderTasks(){
+  const box = document.getElementById('sum-task-list'); if (!box) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const q = v => esc(v).replace(/'/g, "\\'");
+  const tasks = [];
+  const txt = td => (td ? td.textContent.replace(/[✏️📎🗑️]/gu,'').trim() : '');
+  const dday = d => { if (!d) return null; return Math.round((d - today) / 86400000); };
+  // 1) 미결 부적합 중 대책서 미접수 → 대책서 요청
+  const ncRows = (typeof _ncRows === 'function') ? _ncRows() : [];
+  const caNc = new Set((typeof caStore !== 'undefined' ? caStore : []).map(c => c.nc));
+  ncRows.filter(r => r.status !== '완료' && r.seq && !caNc.has(r.seq)).forEach(r => {
+    const dd = dday(r.due);
+    tasks.push({ pri: dd !== null && dd < 0 ? 0 : 2, page:'nonconf', key:r.seq, title:`${r.vendor} ${r.pnum && r.pnum !== '—' ? r.pnum + ' ' : ''}대책서 요청 필요`,
+      time:`${r.seq} · 처리기한 ${r.dueTxt || '—'}`, badge: dd !== null && dd < 0 ? ['기한초과','b-red'] : ['요청필요','b-amber'] });
+  });
+  // 2) 대책서 검토·승인 대기
+  (typeof caStore !== 'undefined' ? caStore : []).filter(c => c.status !== '승인완료').forEach(c => {
+    tasks.push({ pri: 1, page:'caplan', key:c.num, title:`${c.vendor} 대책서 ${c.status === '승인대기' ? '승인' : '검토'} 필요`,
+      time:`${c.num} · 접수 ${c.date || '—'} · 완료예정 ${c.due || '—'}`, badge: [c.status, BADGE_CLS[c.status] || 'b-blue'] });
+  });
+  // 3) 변경점 검토필요
+  const chg = document.querySelector('#sec-change table tbody');
+  if (chg) [...chg.rows].forEach(tr => {
+    if (tr.cells.length < 8 || txt(tr.cells[7]) !== '검토필요') return;
+    const due = _ncParseDate(txt(tr.cells[6]), today), dd = dday(due);
+    tasks.push({ pri: dd !== null && dd <= 7 ? 0 : 2, page:'change', key:txt(tr.cells[0]), title:`${txt(tr.cells[2])} 변경점 통보 검토 필요`,
+      time:`${txt(tr.cells[0])} · ${txt(tr.cells[5])} · 적용일 ${txt(tr.cells[6])}`, badge: dd !== null && dd <= 7 ? ['긴급','b-red'] : ['검토필요','b-amber'] });
+  });
+  // 4) 개선 요청 이행 확인 (완료 제외)
+  const req = document.querySelector('#sec-sup-req table tbody');
+  if (req) [...req.rows].forEach(tr => {
+    if (tr.cells.length < 7) return;
+    const st = txt(tr.cells[6]); if (st === '완료') return;
+    tasks.push({ pri: st === '기한초과' ? 0 : 3, page:'sup-req', key:txt(tr.cells[0]), title:`${txt(tr.cells[1])} 개선요청 ${st === '기한초과' ? '기한 초과 — 독촉' : '이행 확인'}`,
+      time:`${txt(tr.cells[0])} · ${txt(tr.cells[3])} · 기한 ${txt(tr.cells[5])}`, badge: [st, BADGE_CLS[st] || 'b-blue'] });
+  });
+  tasks.sort((a, b) => a.pri - b.pri);
+  const dot = { 'b-red':'var(--red)', 'b-amber':'var(--amber)', 'b-blue':'var(--blue)', 'b-green':'var(--green)' };
+  const cnt = document.getElementById('sum-task-count'); if (cnt) cnt.textContent = tasks.length + '건';
+  const shown = tasks.slice(0, 6);
+  box.innerHTML = shown.map(t => `<div class="tl-row go-row" onclick="goToItem('${t.page}','${q(t.key)}')" title="해당 메뉴에서 보기">
+      <div class="tl-dot" style="background:${dot[t.badge[1]] || 'var(--border2)'}"></div>
+      <div class="tl-body"><div class="tl-title">${esc(t.title)}</div><div class="tl-time">${esc(t.time)}</div></div>
+      <span class="badge ${t.badge[1]}">${esc(t.badge[0])}</span></div>`).join('')
+    || '<div style="padding:22px;text-align:center;color:var(--text3);font-size:13px">진행중인 업무가 없습니다 ✨</div>';
+  if (tasks.length > 6) box.innerHTML += `<div style="font-size:11px;color:var(--text3);padding-top:8px">외 ${tasks.length - 6}건</div>`;
+}
+let _sumTimer = null;
+function refreshSummarySoon(){ clearTimeout(_sumTimer); _sumTimer = setTimeout(() => { if (typeof renderNcSummary === 'function') renderNcSummary(); }, 120); }
 
 /* ── 현황 요약의 항목 클릭 → 해당 메뉴로 이동하고 관련 행을 강조 ── */
 function goToItem(page, match){
@@ -4095,6 +4146,7 @@ function _applyOverrides(){
     }
   });
   _updateCertDdays();
+  refreshSummarySoon();
 }
 async function _saveOverride(sec, key, data){
   const id = _ovId(sec, key);
@@ -4289,7 +4341,7 @@ async function _vendorLoad(){
 (function(){
   const start = () => {
     ensureActCells();
-    ACT_TABLES.forEach(t => { const tb = t.get(); if (tb) new MutationObserver(() => ensureActCells()).observe(tb, { childList: true }); });
+    ACT_TABLES.forEach(t => { const tb = t.get(); if (tb) new MutationObserver(() => { ensureActCells(); refreshSummarySoon(); }).observe(tb, { childList: true, subtree: true, characterData: true }); });
     _loadOverrides();
     _vendorLoad();
   };
