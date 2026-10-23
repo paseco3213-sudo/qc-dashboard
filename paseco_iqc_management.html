@@ -674,6 +674,7 @@ tr.row-flash td{animation:rowFlash 2.2s ease}
 <div class="topbar">
   <div class="page-title" id="ptitle">수입검사 현황 요약</div>
   <div class="tbar-r">
+    <button class="btn btn-sm" onclick="runStorageCheck()" title="Firebase 저장소 연결 점검">🔧 연결 점검</button>
     <span class="tbar-date" id="today-date"></span>
     <button class="btn btn-primary" id="reg-btn" onclick="openRegModal()">+ 신규 등록</button>
   </div>
@@ -2245,6 +2246,32 @@ function sdFilterVendors(field, val){
   const sel = document.getElementById(field === 'grade' ? 'vf-grade' : 'vf-cat');
   if (sel) { if (![...sel.options].some(o => o.value === val)) sel.add(new Option(val, val)); sel.value = val; }
   if (typeof filterVendors === 'function') filterVendors();
+}
+
+
+/* ── 🔧 저장소 연결 점검: Firestore(목록)·Storage(파일) 쓰기/읽기/삭제를 실제로 시험 ── */
+async function runStorageCheck(){
+  const lines = [];
+  const step = async (label, fn) => {
+    try { await fn(); lines.push('✅ ' + label); return true; }
+    catch (e) { const c = (e && (e.code || e.message)) || 'unknown'; lines.push('❌ ' + label + ' — ' + c); return false; }
+  };
+  const id = 'check_' + Date.now();
+  const fsRef = fbDb.collection('_healthcheck').doc(id);
+  await step('Firestore 쓰기 (목록·기록 저장)', () => fsRef.set({ at: new Date().toISOString() }));
+  await step('Firestore 읽기', async () => { const d = await fsRef.get(); if (!d.exists) throw new Error('not-found'); });
+  await step('Firestore 삭제', () => fsRef.delete());
+  const stRef = fbStorage.ref('_healthcheck/' + id + '.txt');
+  const okPut = await step('Storage 쓰기 (파일·사진 저장)', () => stRef.putString('ok'));
+  if (okPut) {
+    await step('Storage 읽기 주소 만들기', () => stRef.getDownloadURL());
+    await step('Storage 삭제', () => stRef.delete());
+  }
+  const bad = lines.filter(l => l.startsWith('❌'));
+  let hint = '';
+  if (bad.some(l => l.includes('Firestore'))) hint += '\n→ Firestore 규칙(데이터베이스 > 규칙) 날짜·게시 여부를 확인하세요.';
+  if (bad.some(l => l.includes('Storage'))) hint += '\n→ Storage 규칙(Storage > 규칙) 날짜를 2027,12,31로 바꾸고 [게시]했는지, 요금제가 Blaze인지 확인하세요.';
+  alert('저장소 연결 점검 결과\n\n' + lines.join('\n') + (bad.length ? '\n' + hint : '\n\n모두 정상입니다 ✨'));
 }
 
 let _sumTimer = null;
