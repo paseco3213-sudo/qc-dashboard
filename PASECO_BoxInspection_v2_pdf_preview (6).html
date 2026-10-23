@@ -203,6 +203,46 @@ body{background:var(--bg);color:var(--txt);font-family:var(--font);font-size:13p
 .toast{position:fixed;bottom:22px;right:22px;background:var(--txt);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:var(--shadow2);transform:translateY(60px);opacity:0;transition:.3s;z-index:2000}
 .toast.show{transform:translateY(0);opacity:1}
 
+
+/* ── 박스 검사 이력 (모델별 불량 이력) ── */
+.hdr-btn{cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:5px;transition:.15s}
+.hdr-btn:hover,.hdr-btn.on{background:#fff;color:var(--navy);border-color:#fff}
+.wrap.hist-mode>.steps,.wrap.hist-mode>.sec{display:none!important}
+#hist-view{display:none}
+.wrap.hist-mode #hist-view{display:block}
+.hv-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 16px}
+.hv-ctrl select{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font);background:#fff;color:var(--txt);outline:none;min-width:150px}
+.hv-ctrl select:focus{border-color:var(--blue)}
+.hv-ctrl .lbl{font-size:11px;font-weight:700;color:var(--sub)}
+.hv-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.hv-kpi{border:1px solid var(--border);border-radius:10px;padding:14px 16px;background:#fff}
+.hv-kpi .l{font-size:11px;color:var(--sub);font-weight:600}
+.hv-kpi .v{font-size:24px;font-weight:700;margin-top:4px;font-family:var(--mono);line-height:1.2}
+.hv-kpi .v.txt{font-family:var(--font);font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hv-kpi .s{font-size:11px;color:var(--dim);margin-top:3px}
+.hv-grid{display:grid;grid-template-columns:1fr 2.2fr;gap:14px}
+.hv-bars{display:flex;flex-direction:column;gap:9px}
+.hv-bar-row{font-size:12px}
+.hv-bar-top{display:flex;justify-content:space-between;margin-bottom:3px;color:var(--txt)}
+.hv-bar-top b{font-family:var(--mono);color:var(--red)}
+.hv-bar{height:7px;background:var(--bg);border-radius:4px;overflow:hidden}
+.hv-bar>div{height:100%;background:linear-gradient(90deg,#F87171,var(--red));border-radius:4px}
+.hv-tbl-wrap{max-height:520px;overflow:auto;border:1px solid var(--border);border-radius:10px}
+.hv-tbl{width:100%;border-collapse:collapse}
+.hv-tbl th{position:sticky;top:0;background:var(--bg);padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--dim);letter-spacing:.05em;border-bottom:2px solid var(--border);white-space:nowrap;z-index:1}
+.hv-tbl td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
+.hv-tbl tr:last-child td{border-bottom:none}
+.hv-tbl tr:hover td{background:var(--bg)}
+.hv-def{display:inline-block;margin:1px 4px 1px 0;padding:2px 7px;border-radius:5px;font-size:11px;background:var(--red-l);color:var(--red)}
+.hv-def.warn{background:var(--amber-l);color:var(--amber)}
+.hv-thumb{width:36px;height:36px;border-radius:5px;object-fit:cover;border:1px solid var(--border);display:block}
+.hv-note{font-size:11px;color:var(--dim);margin-top:10px}
+.hv-mini{border-left:4px solid var(--amber)!important;background:linear-gradient(90deg,var(--amber-l),#fff 60%)!important}
+.hv-mini.clean{border-left-color:var(--green)!important;background:linear-gradient(90deg,var(--green-l),#fff 60%)!important}
+.hv-mini-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hv-mini-txt{font-size:13px;color:var(--txt);line-height:1.7}
+.hv-mini-list{font-size:11px;color:var(--sub);margin-top:6px;line-height:1.8}
+@media(max-width:900px){.hv-kpis{grid-template-columns:repeat(2,1fr)}.hv-grid{grid-template-columns:1fr}}
 @media(max-width:768px){
   .steps,.cmp-grid,.photo-grid{display:block}
   .st{border-right:none;border-bottom:1px solid var(--border)}
@@ -245,6 +285,7 @@ body{background:var(--bg);color:var(--txt);font-family:var(--font);font-size:13p
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       IQC_Management로
     </a>
+    <button type="button" class="hdr-badge hdr-btn" id="hist-toggle" onclick="toggleHistView()" title="모델별 박스 검사 이력 보기">📊 박스 검사 이력</button>
     <div class="hdr-badge">🤖 AI 자동 판정</div>
   </div>
 </div>
@@ -272,6 +313,45 @@ body{background:var(--bg);color:var(--txt);font-family:var(--font);font-size:13p
 </div>
 
 <div class="wrap">
+
+  <!-- ═══ 박스 검사 이력 (모델별 불량 이력) ═══ -->
+  <div id="hist-view">
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between">
+        <span>📊 박스 검사 이력 — 모델별 불량 이력</span>
+        <button class="btn btn-ghost" onclick="toggleHistView(false)">← 검사 화면으로</button>
+      </div>
+      <div class="card-sub">AI 판정을 마칠 때마다 결과가 자동으로 쌓입니다. 모델을 고르면 그 모델의 불량 이력만 볼 수 있습니다.</div>
+      <div class="hv-ctrl">
+        <span class="lbl">제품 모델</span>
+        <select id="hv-model" onchange="renderHistView()"><option value="">전체 모델</option></select>
+        <span class="lbl" style="margin-left:6px">판정</span>
+        <select id="hv-verdict" onchange="renderHistView()">
+          <option value="">전체</option>
+          <option value="fail">불합격</option>
+          <option value="warn">재확인</option>
+          <option value="pass">합격</option>
+        </select>
+        <span id="hv-status" style="font-size:11px;color:var(--dim);margin-left:auto"></span>
+      </div>
+      <div class="hv-kpis" id="hv-kpis"></div>
+      <div class="hv-grid">
+        <div class="card" style="margin:0;padding:16px">
+          <div style="font-size:12px;font-weight:700;margin-bottom:12px">🔁 반복 불량 유형</div>
+          <div class="hv-bars" id="hv-bars"></div>
+        </div>
+        <div>
+          <div class="hv-tbl-wrap">
+            <table class="hv-tbl">
+              <thead><tr><th>검사일</th><th>모델</th><th>불량 유형</th><th>일치율</th><th>판정</th><th>사진</th></tr></thead>
+              <tbody id="hv-tbody"></tbody>
+            </table>
+          </div>
+          <div class="hv-note">※ 불량 유형은 AI 판정에서 '불일치(❌)·재확인(⚠)'으로 나온 항목입니다. 이 기능을 추가하기 전에 저장된 이력은 불량 유형 없이 판정·일치율만 표시됩니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Step indicator -->
   <div class="steps">
@@ -369,6 +449,15 @@ body{background:var(--bg);color:var(--txt);font-family:var(--font);font-size:13p
 
   <!-- ═══ STEP 2: 현물 사진 ═══ -->
   <div class="sec" id="sec2">
+    <div class="card hv-mini" id="hv-mini" style="display:none">
+      <div class="hv-mini-row">
+        <div>
+          <div class="hv-mini-txt" id="hv-mini-txt"></div>
+          <div class="hv-mini-list" id="hv-mini-list"></div>
+        </div>
+        <button class="btn btn-ghost" onclick="openHistFor()">📊 이 모델 이력 전체 보기</button>
+      </div>
+    </div>
     <div class="card">
       <div class="card-title">📸 현물 사진 업로드</div>
       <div class="card-sub">실제 박스를 촬영하여 업로드하세요. 앞면은 필수, 나머지는 선택입니다.</div>
@@ -986,6 +1075,7 @@ function goStep(n){
     else if(i<n) tab.classList.add('done');
   }
   if(n===3) buildCheckItems();
+  if(n===2) renderHistMini();
   window.scrollTo(0,0);
 }
 
@@ -1324,9 +1414,13 @@ function closeDiffModal(){
 
 function saveHistory(r){
   const id = 'insp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-  const entryLocal = {id, date:new Date().toLocaleString('ko-KR'),product:S.productName||'제품',verdict:r.verdict,score:r.score,photoUrl:S.photos[1]||''};
+  const defects = (r.items||[]).filter(i=>i.result==='fail'||i.result==='warn')
+    .map(i=>({id:i.id||'', label:i.label||i.id||'', result:i.result, note:String(i.note||'').slice(0,200)}));
+  const entryLocal = {id, date:new Date().toLocaleString('ko-KR'),product:S.productName||'제품',model:currentModel(),
+    verdict:r.verdict,score:r.score,photoUrl:S.photos[1]||'',defects,summary:String(r.summary||'').slice(0,300),ts:Date.now()};
   S.history.unshift(entryLocal);
   renderHistory();
+  if(HV.loaded) HV.all.unshift(Object.assign({}, entryLocal));
   _syncHistoryToCloud(entryLocal);
 }
 
@@ -1342,13 +1436,18 @@ async function _syncHistoryToCloud(entryLocal){
     }
     await fbDb.collection('inspections').doc(id).set({
       product: entryLocal.product,
+      model: entryLocal.model || entryLocal.product,
       verdict: entryLocal.verdict,
       score: entryLocal.score,
+      defects: entryLocal.defects || [],
+      summary: entryLocal.summary || '',
       photoUrl,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   } catch(err){
     console.error('판정 이력 클라우드 저장 실패', err);
+    const code = (err && err.code) ? err.code : 'unknown';
+    showToast('❌ 판정 이력 저장 실패: ' + code + (code==='permission-denied' ? ' (Firebase 보안 규칙 확인 필요)' : ''), true);
   }
 }
 
@@ -1389,10 +1488,151 @@ function renderHistory(){
   }).join('');
 }
 
+
+// ════ 박스 검사 이력 (모델별 불량 이력) ════
+const HV = { all: [], loaded: false, loading: null };
+
+function currentModel(){
+  if(S.specDb && S.specDb.label) return S.specDb.label;
+  if(S.specCustomName) return S.specCustomName.replace(/\.[^.]+$/,'');
+  return S.productName || '제품';
+}
+const hvModelOf = h => (h.model || h.product || '제품').trim();
+const hvEsc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hvVerdict = v => v==='pass' ? ['합격','rb-pass'] : v==='warn' ? ['재확인','rb-warn'] : ['불합격','rb-fail'];
+function hvFmt(ts){
+  if(!ts) return '—';
+  const d = new Date(ts);
+  return (d.getMonth()+1) + '/' + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0')
+    + (d.getFullYear() !== new Date().getFullYear() ? ' (' + d.getFullYear() + ')' : '');
+}
+
+function loadAllHistory(force){
+  if(HV.loaded && !force) return Promise.resolve(HV.all);
+  if(HV.loading) return HV.loading;
+  const st = document.getElementById('hv-status'); if(st) st.textContent = '이력 불러오는 중...';
+  HV.loading = fbDb.collection('inspections').orderBy('createdAt','desc').limit(1000).get().then(snap=>{
+    HV.all = snap.docs.map(doc=>{
+      const d = doc.data();
+      const ts = (d.createdAt && d.createdAt.toDate) ? d.createdAt.toDate().getTime() : Date.now();
+      return { id: doc.id, ts, product: d.product||'제품', model: d.model||'', verdict: d.verdict, score: d.score,
+               defects: Array.isArray(d.defects) ? d.defects : null, summary: d.summary||'', photoUrl: d.photoUrl||'' };
+    });
+    HV.loaded = true;
+    if(st) st.textContent = '';
+    return HV.all;
+  }).catch(err=>{
+    console.error('검사 이력 불러오기 실패', err);
+    const code = (err && err.code) ? err.code : 'unknown';
+    if(st) st.textContent = '⚠ 이력 불러오기 실패: ' + code;
+    showToast('❌ 검사 이력 불러오기 실패: ' + code, true);
+    return HV.all;
+  }).finally(()=>{ HV.loading = null; });
+  return HV.loading;
+}
+
+function toggleHistView(on){
+  const wrap = document.querySelector('.wrap');
+  const show = (on === undefined) ? !wrap.classList.contains('hist-mode') : on;
+  wrap.classList.toggle('hist-mode', show);
+  document.getElementById('hist-toggle').classList.toggle('on', show);
+  window.scrollTo(0,0);
+  if(show){ renderHistView(); loadAllHistory().then(renderHistView); }
+}
+
+// 2단계 요약 카드의 '전체 보기' → 현재 모델로 필터해서 이력 화면 열기
+function openHistFor(){
+  const m = currentModel();
+  toggleHistView(true);
+  loadAllHistory().then(()=>{
+    const sel = document.getElementById('hv-model');
+    if([...sel.options].some(o=>o.value===m)) sel.value = m;
+    renderHistView();
+  });
+}
+
+function hvStats(rows){
+  const fail = rows.filter(h=>h.verdict==='fail').length;
+  const warn = rows.filter(h=>h.verdict==='warn').length;
+  const freq = {};
+  rows.forEach(h => (h.defects||[]).forEach(d => { const k = d.label || d.id; if(k) freq[k] = (freq[k]||0) + 1; }));
+  const top = Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+  return { total: rows.length, fail, warn, top };
+}
+
+function renderHistView(){
+  const all = HV.all;
+  const sel = document.getElementById('hv-model');
+  const cur = sel.value;
+  const models = {};
+  all.forEach(h => { const m = hvModelOf(h); models[m] = (models[m]||0) + 1; });
+  sel.innerHTML = '<option value="">전체 모델 (' + all.length + ')</option>' +
+    Object.entries(models).sort((a,b)=>b[1]-a[1]).map(([m,c]) => `<option value="${hvEsc(m)}"${m===cur?' selected':''}>${hvEsc(m)} (${c})</option>`).join('');
+  const fv = document.getElementById('hv-verdict').value;
+  const byModel = all.filter(h => !cur || hvModelOf(h) === cur);
+  const rows = byModel.filter(h => !fv || h.verdict === fv);
+  const st = hvStats(byModel);
+  const failRate = st.total ? Math.round((st.fail / st.total) * 100) : 0;
+  const top1 = st.top[0];
+  document.getElementById('hv-kpis').innerHTML = `
+    <div class="hv-kpi"><div class="l">누적 검사</div><div class="v">${st.total}<span style="font-size:12px;color:var(--dim)"> 건</span></div><div class="s">${cur ? hvEsc(cur) : '전체 모델'}</div></div>
+    <div class="hv-kpi"><div class="l">불합격</div><div class="v" style="color:var(--red)">${st.fail}<span style="font-size:12px;color:var(--dim)"> 건</span></div><div class="s">불합격률 ${failRate}%</div></div>
+    <div class="hv-kpi"><div class="l">재확인</div><div class="v" style="color:var(--amber)">${st.warn}<span style="font-size:12px;color:var(--dim)"> 건</span></div><div class="s">일치율 60~79%</div></div>
+    <div class="hv-kpi"><div class="l">주요 불량</div><div class="v txt" title="${top1?hvEsc(top1[0]):''}">${top1 ? hvEsc(top1[0]) : '—'}</div><div class="s">${top1 ? top1[1] + '회 발생' : '기록된 불량 유형 없음'}</div></div>`;
+
+  const maxC = st.top.length ? st.top[0][1] : 1;
+  document.getElementById('hv-bars').innerHTML = st.top.length
+    ? st.top.slice(0,8).map(([k,c]) => `<div class="hv-bar-row"><div class="hv-bar-top"><span>${hvEsc(k)}</span><b>${c}회</b></div><div class="hv-bar"><div style="width:${Math.round(c/maxC*100)}%"></div></div></div>`).join('')
+    : '<div class="empty" style="padding:18px"><div class="empty-ico">✨</div>기록된 불량 유형이 없습니다</div>';
+
+  document.getElementById('hv-tbody').innerHTML = rows.map(h => {
+    const [vt, vc] = hvVerdict(h.verdict);
+    const defs = h.defects === null
+      ? '<span style="color:var(--dim);font-size:11px">(기록 없음)</span>'
+      : (h.defects.length
+          ? h.defects.map(d => `<span class="hv-def ${d.result==='warn'?'warn':''}" title="${hvEsc(d.note||'')}">${hvEsc(d.label||d.id)}</span>`).join('')
+          : '<span style="color:var(--green);font-size:11px">이상 없음</span>');
+    const model = hvModelOf(h);
+    const prod = (h.product && h.product !== model && h.product !== '제품') ? `<div style="font-size:10px;color:var(--dim)">${hvEsc(h.product)}</div>` : '';
+    return `<tr title="${hvEsc(h.summary||'')}">
+      <td style="font-family:var(--mono);font-size:11px;white-space:nowrap">${hvFmt(h.ts)}</td>
+      <td style="font-weight:600">${hvEsc(model)}${prod}</td>
+      <td>${defs}</td>
+      <td style="font-family:var(--mono)">${h.score ?? '—'}%</td>
+      <td><span class="rb ${vc}">${vt}</span></td>
+      <td>${h.photoUrl ? `<a href="${hvEsc(h.photoUrl)}" target="_blank" rel="noopener"><img class="hv-thumb" src="${hvEsc(h.photoUrl)}" alt=""></a>` : '<span style="color:var(--dim)">—</span>'}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6"><div class="empty"><div class="empty-ico">📭</div>${HV.loaded ? '해당 조건의 검사 이력이 없습니다' : '이력을 불러오는 중입니다...'}</div></td></tr>`;
+}
+
+// 2단계: 선택한 모델의 과거 불량 이력 요약
+function renderHistMini(){
+  const box = document.getElementById('hv-mini');
+  if(!box) return;
+  loadAllHistory().then(()=>{
+    const m = currentModel();
+    const rows = HV.all.filter(h => hvModelOf(h) === m);
+    if(!rows.length){ box.style.display = 'none'; return; }
+    const st = hvStats(rows);
+    const bad = rows.filter(h => h.verdict !== 'pass').slice(0,3);
+    box.style.display = '';
+    box.classList.toggle('clean', st.fail + st.warn === 0);
+    document.getElementById('hv-mini-txt').innerHTML =
+      `<b>${hvEsc(m)}</b> 과거 검사 <b>${st.total}건</b> · 불합격 <b style="color:var(--red)">${st.fail}건</b> · 재확인 <b style="color:var(--amber)">${st.warn}건</b>` +
+      (st.top.length ? ` · 주요 불량 <b style="color:var(--red)">${hvEsc(st.top[0][0])}</b> (${st.top[0][1]}회) — 촬영 시 이 부분을 특히 확인하세요` : (st.fail + st.warn ? '' : ' · 지금까지 불량 이력 없음'));
+    document.getElementById('hv-mini-list').innerHTML = bad.map(h => {
+      const [vt] = hvVerdict(h.verdict);
+      const d = (h.defects||[]).map(x => x.label || x.id).join(', ');
+      return `• ${hvFmt(h.ts)} — ${vt}${d ? ' : ' + hvEsc(d) : ''} (일치율 ${h.score ?? '—'}%)`;
+    }).join('<br>');
+  });
+}
+
 // ── 판정 이력 개별 삭제 ──
 function deleteHistoryItem(id){
   if(!confirm('이 판정 이력을 삭제하시겠어요?')) return;
   S.history = S.history.filter(h => h.id !== id);
+  HV.all = HV.all.filter(h => h.id !== id);
   renderHistory();
   showToast('🗑️ 이력 삭제됨');
   if(id) _deleteHistoryFromCloud(id);
@@ -1403,6 +1643,7 @@ function deleteAllHistory(){
   if(!S.history.length) return;
   if(!confirm('최근 판정 이력을 전체 삭제하시겠어요? 팀원 모두에게서 사라집니다.')) return;
   const ids = S.history.map(h=>h.id).filter(Boolean);
+  HV.all = HV.all.filter(h => !ids.includes(h.id));
   S.history = [];
   renderHistory();
   showToast('🗑️ 판정 이력 전체 삭제됨');
