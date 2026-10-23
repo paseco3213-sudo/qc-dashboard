@@ -945,17 +945,17 @@ tr.row-flash td{animation:rowFlash 2.2s ease}
         대책서 미제출
       </div>
       <div class="wc-nums">
-        <div class="wc-this" style="color:var(--amber)">3</div>
-        <div class="wc-prev">전주 4건</div>
+        <div class="wc-this" style="color:var(--amber)" id="sum-ca-missing">3</div>
+        <div class="wc-prev" id="sum-ca-sub">전주 4건</div>
       </div>
-      <div class="week-bars">
+      <div class="week-bars" id="sum-ca-bars">
         <div class="wb" style="height:75%;background:var(--border2)"></div>
         <div class="wb" style="height:100%;background:var(--border2)"></div>
         <div class="wb" style="height:90%;background:var(--border2)"></div>
         <div class="wb" style="height:100%;background:var(--border2)"></div>
         <div class="wb" style="height:75%;background:var(--amber)"></div>
       </div>
-      <span class="wc-delta delta-dn">▼ -1건 처리 진행중</span>
+      <span class="wc-delta delta-dn" id="sum-ca-delta">▼ -1건 처리 진행중</span>
     </div>
   </div>
 
@@ -1794,6 +1794,7 @@ function nav(id, el) {
   document.getElementById('ptitle').textContent = titles[id];
   currentPage = id;
   if (id === 'defect' && window.QD) QD.onShow();
+  if (id === 'caplan' && typeof caRefreshNcOptions === 'function') caRefreshNcOptions();
 }
 
 
@@ -1862,6 +1863,38 @@ function renderNcSummary(){
   if (bars){
     const mx = Math.max(1, ...weeks);
     bars.innerHTML = weeks.map((v, i) => `<div class="wb" title="${['4주전','3주전','2주전','지난주','이번주'][i]} ${v}건" style="height:${Math.max(8, Math.round(v / mx * 100))}%;background:${i === 4 ? 'var(--red)' : 'var(--border2)'}"></div>`).join('');
+  }
+
+
+  // ── 대책서 연동 (대책서 미제출 카드 · 진행중인 업무) ──
+  if (typeof caStore !== 'undefined') {
+    const caNc = new Set(caStore.map(c => c.nc));
+    const missing = open.filter(r => r.seq && !caNc.has(r.seq));
+    const reviewing = caStore.filter(c => c.status !== '승인완료').length;
+    set('sum-ca-missing', missing.length);
+    set('sum-ca-sub', '검토·승인대기 ' + reviewing + '건');
+    const cd = document.getElementById('sum-ca-delta');
+    if (cd){
+      cd.className = 'wc-delta ' + (missing.length ? 'delta-up' : 'delta-dn');
+      cd.textContent = missing.length ? `미결 부적합 ${open.length}건 중 ${missing.length}건 미접수` : '✓ 미결 부적합 모두 대책서 접수';
+      cd.title = missing.map(r => r.seq + ' ' + r.vendor).join('\n');
+    }
+    const cb = document.getElementById('sum-ca-bars');
+    if (cb){
+      const wk = [4,3,2,1,0].map(k => {
+        const st = new Date(monday); st.setDate(monday.getDate() - 7 * k);
+        const en = new Date(st); en.setDate(st.getDate() + 7);
+        return caStore.filter(c => { const d = _ncParseDate(c.date, today); return d && d >= st && d < en; }).length;
+      });
+      const mx = Math.max(1, ...wk);
+      cb.innerHTML = wk.map((v, i) => `<div class="wb" title="${['4주전','3주전','2주전','지난주','이번주'][i]} 대책서 접수 ${v}건" style="height:${Math.max(8, Math.round(v / mx * 100))}%;background:${i === 4 ? 'var(--amber)' : 'var(--border2)'}"></div>`).join('');
+    }
+    // 진행중인 업무 중 삭제된 대책서를 가리키는 항목은 숨김
+    const caTxt = caStore.map(c => c.vendor + ' ' + c.num).join(' ');
+    document.querySelectorAll('.tl-row.go-row').forEach(el => {
+      const m = (el.getAttribute('onclick') || '').match(/goToItem\('caplan','([^']+)'\)/);
+      if (m) el.style.display = caTxt.includes(m[1]) ? '' : 'none';
+    });
   }
 
   // 목록: 최근 등록순 5건
@@ -3430,14 +3463,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const inp = document.getElementById('apiKeyInput');
   if (saved && inp) { inp.value = saved; saveApiKey(saved); }
 
-  // 대책서 초기 렌더
+  // 대책서 초기 렌더 → Firebase 목록으로 갱신
   caRenderTable();
+  _caCloudLoad();
 
   // 대책서 업체 드롭다운 초기화
   const caVSel = document.getElementById('ca-vendor-sel');
   if (caVSel) {
     caVSel.innerHTML = '<option value="">업체 선택</option>' +
-      vendorStore.map(v=>`<option value="${v.name}">${v.name}</option>`).join('');
+      vendorNamesAll().map(n=>`<option value="${n}">${n}</option>`).join('');
+  }
+  // 부적합번호 선택지: 부적합 관리 표와 연동, 고르면 업체명 자동 선택
+  const caNcSel = document.getElementById('ca-nc-sel');
+  if (caNcSel) {
+    caNcSel.addEventListener('focus', caRefreshNcOptions);
+    caNcSel.addEventListener('mousedown', caRefreshNcOptions);
+    caNcSel.addEventListener('change', () => {
+      const v = caNcSel.selectedOptions[0]?.dataset.vendor;
+      if (v && caVSel && [...caVSel.options].some(o => o.value === v)) caVSel.value = v;
+    });
   }
 });
 
@@ -3463,14 +3507,98 @@ function caLoadStore() {
   return CA_DEFAULT.map(r => ({...r}));
 }
 function caSaveStore() {
+  const serializable = caStore.map(r => {
+    const {fileObjects, ...rest} = r;   // File 객체는 저장 불가 → 파일은 Storage에 따로 올리고 주소(fileUrls)만 저장
+    return rest;
+  });
+  try { localStorage.setItem(CA_STORE_KEY, JSON.stringify(serializable)); } catch(e) {}
+  // Firebase에 저장 — 팀원 모두 같은 대책서 목록을 보게 됨
+  _caCloudSave(serializable);
+}
+async function _caCloudSave(rows){
   try {
-    // fileObjects는 File 객체 — JSON 직렬화 불가, 제외하고 저장
-    const serializable = caStore.map(r => {
-      const {fileObjects, ...rest} = r;
-      return rest;
-    });
-    localStorage.setItem(CA_STORE_KEY, JSON.stringify(serializable));
-  } catch(e) {}
+    const batch = fbDb.batch();
+    rows.forEach(r => batch.set(fbDb.collection(CA_COLL).doc(r.num), Object.assign({}, r, { updatedAt: firebase.firestore.FieldValue.serverTimestamp() })));
+    await batch.commit();
+  } catch (err) {
+    console.error('대책서 클라우드 저장 실패', err);
+    const code = (err && err.code) ? err.code : 'unknown';
+    toast('❌ 대책서 저장 실패: ' + code + (code === 'permission-denied' ? ' (Firebase 보안 규칙 확인 필요)' : ''));
+  }
+}
+const CA_COLL = 'ca_store';
+/* 페이지를 열 때 Firebase의 대책서 목록을 불러옴. 처음 한 번은 이 브라우저에 있던 목록을 Firebase로 옮김 */
+async function _caCloudLoad(){
+  try {
+    const snap = await fbDb.collection(CA_COLL).get();
+    if (snap.empty) {
+      const seed = caStore.map(r => { const {fileObjects, ...rest} = r; return rest; });
+      if (seed.length) await _caCloudSave(seed);
+      return;
+    }
+    const cloud = snap.docs.map(d => { const x = d.data(); delete x.updatedAt; return x; });
+    const sortKey = r => String(r.num || '');
+    cloud.sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
+    // 이번 세션에서 방금 올린 파일(File 객체)은 유지
+    const objs = {}; caStore.forEach(r => { if (r.fileObjects) objs[r.num] = r.fileObjects; });
+    caStore = cloud.map(r => objs[r.num] ? Object.assign(r, { fileObjects: objs[r.num] }) : r);
+    try { localStorage.setItem(CA_STORE_KEY, JSON.stringify(cloud)); } catch(e) {}
+    caRenderTable();
+  } catch (err) {
+    console.error('대책서 클라우드 불러오기 실패 — 이 브라우저에 저장된 목록으로 표시', err);
+  }
+}
+/* 대책서 첨부파일을 Firebase Storage에 업로드하고 주소를 기록 */
+async function _caUploadFiles(rec){
+  if (!rec.fileObjects || !rec.fileObjects.length) return;
+  const urls = [];
+  try {
+    for (const f of rec.fileObjects) {
+      const ref = fbStorage.ref('ca_files/' + rec.num + '/' + f.name);
+      await ref.put(f);
+      urls.push(await ref.getDownloadURL());
+    }
+    rec.fileUrls = urls;
+    caSaveStore();
+  } catch (err) {
+    console.error('대책서 첨부파일 업로드 실패', err);
+    toast('⚠️ 첨부파일 업로드 실패 — 목록은 저장됐지만 파일은 이 창에서만 열 수 있습니다 (Storage 규칙 확인)');
+  }
+}
+/* 대책서 삭제 */
+async function caDelete(num){
+  const r = caStore.find(x => x.num === num);
+  if (!r) return;
+  if (!confirm(`대책서 ${num} (${r.vendor})을(를) 삭제하시겠습니까?\n첨부파일도 함께 삭제되며 팀원 모두의 화면에서 사라집니다.`)) return;
+  caStore = caStore.filter(x => x.num !== num);
+  try { localStorage.setItem(CA_STORE_KEY, JSON.stringify(caStore.map(x => { const {fileObjects, ...rest} = x; return rest; }))); } catch(e) {}
+  caRenderTable();
+  try {
+    await fbDb.collection(CA_COLL).doc(num).delete();
+    toast('🗑️ ' + num + ' 삭제 완료');
+  } catch (err) {
+    console.error('대책서 삭제 실패', err);
+    toast('❌ 삭제 실패: ' + ((err && err.code) || 'unknown') + ' — 새로고침하면 다시 보일 수 있습니다');
+  }
+  for (const name of (r.files || [])) {
+    try { await fbStorage.ref('ca_files/' + num + '/' + name).delete(); } catch(e) {}
+  }
+}
+/* 대책서 번호: 같은 연월 번호 중 가장 큰 값 + 1 (삭제 후에도 겹치지 않게) */
+function caNextNum(){
+  const ym = new Date().toISOString().slice(2,7).replace('-','');
+  let max = 0;
+  caStore.forEach(r => { const m = String(r.num || '').match(new RegExp('^CA-' + ym + '-(\\d+)')); if (m) max = Math.max(max, parseInt(m[1])); });
+  return 'CA-' + ym + '-' + String(max + 1).padStart(3,'0');
+}
+/* 관련 부적합번호 선택지를 부적합 관리 표에서 가져옴 */
+function caRefreshNcOptions(){
+  const sel = document.getElementById('ca-nc-sel');
+  if (!sel || typeof _ncRows !== 'function') return;
+  const cur = sel.value;
+  const rows = _ncRows().filter(r => r.seq);
+  sel.innerHTML = '<option value="">선택</option>' + rows.map(r => `<option value="${r.seq}" data-vendor="${String(r.vendor).replace(/"/g,'&quot;')}">${r.seq} · ${r.vendor} · ${r.pnum}</option>`).join('');
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
 }
 let caStore = caLoadStore();
 
@@ -3515,10 +3643,12 @@ function caSubmit() {
   if (!nc) { caShowResult('⚠️ 부적합번호를 선택해주세요.','warn'); return; }
   if (!vendor) { caShowResult('⚠️ 업체명을 선택해주세요.','warn'); return; }
   if (!caFiles.length) { caShowResult('⚠️ 대책서 파일을 첨부해주세요.','warn'); return; }
-  const num = 'CA-' + new Date().toISOString().slice(2,7).replace('-','') + '-' + String(caStore.length+1).padStart(3,'0');
+  const num = caNextNum();
   const fmt = d => d ? d.slice(5).replace('-','.') : '—';
-  caStore.unshift({num, vendor, nc, date:fmt(date), due:fmt(due), files:caFiles.map(f=>f.name), fileObjects:[...caFiles], memo, status:'검토중'});
+  const rec = {num, vendor, nc, date:fmt(date), due:fmt(due), files:caFiles.map(f=>f.name), fileObjects:[...caFiles], memo, status:'검토중'};
+  caStore.unshift(rec);
   caSaveStore();
+  _caUploadFiles(rec);
   caRenderTable();
   caShowResult(`✅ "${vendor}" 대책서 접수 완료 — ${caFiles.length}개 파일 (${num})`,'ok');
   caReset();
@@ -3565,9 +3695,10 @@ function caRenderTable() {
       <td style="font-size:11px;color:var(--text2);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.memo||'—'}</td>
       <td><span class="badge ${sc}">${r.status}</span></td>
       <td>${approveBtn}</td>
-      <td><button class="btn btn-sm" onclick="caOpenDetail('${r.num}')" style="color:var(--blue-text);border-color:var(--blue)">🔍 상세</button></td>
+      <td style="white-space:nowrap"><button class="btn btn-sm" onclick="caOpenDetail('${r.num}')" style="color:var(--blue-text);border-color:var(--blue)">🔍 상세</button><button type="button" class="nc-del" onclick="caDelete('${r.num}')" title="삭제" style="margin-left:6px">🗑️</button></td>
     </tr>`;
-  }).join('');
+  }).join('') || '<tr><td colspan="10" style="text-align:center;padding:28px;color:var(--text3)">등록된 대책서가 없습니다</td></tr>';
+  if (typeof renderNcSummary === 'function') renderNcSummary();
 }
 
 function caApprove(btn, num) {
@@ -3736,6 +3867,7 @@ function caOpenDetail(num) {
       const size = fobj ? (fobj.size > 1024*1024 ? (fobj.size/1024/1024).toFixed(1)+'MB' : Math.round(fobj.size/1024)+'KB') : '';
       let url = '';
       if (fobj) { url = URL.createObjectURL(fobj); filesEl._objectUrls.push(url); }
+      else if (r.fileUrls && r.fileUrls[i]) { url = r.fileUrls[i]; }
 
       const dlBtn  = url ? `<a href="${url}" download="${fname}" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--blue-text);text-decoration:none;padding:3px 8px;border:1px solid var(--blue);border-radius:4px;cursor:pointer">📥 다운로드</a>` : '<span style="font-size:11px;color:var(--text3)">다운로드 불가</span>';
       const viewBtn = (url && viewable(ext)) ? `<a href="${url}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--green-text);text-decoration:none;padding:3px 8px;border:1px solid var(--green);border-radius:4px;cursor:pointer">👁 보기</a>` : '';
