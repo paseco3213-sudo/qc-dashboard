@@ -281,7 +281,7 @@ body{background:var(--bg);color:var(--txt);font-family:var(--font);font-size:13p
     </div>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
-    <a href="paseco_iqc_management.html" class="hdr-badge" style="text-decoration:none;cursor:pointer;display:flex;align-items:center;gap:5px">
+    <a href="paseco_iqc_management.html" onclick="if(_specSaving>0 && !confirm('사양서를 아직 저장하고 있습니다. 지금 이동하면 저장되지 않을 수 있습니다. 이동할까요?')) return false;" class="hdr-badge" style="text-decoration:none;cursor:pointer;display:flex;align-items:center;gap:5px">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       IQC_Management로
     </a>
@@ -682,7 +682,7 @@ function _customCardHTML(entry){
     <div class="spec-card${selected}" id="sc_${entry.id}" style="border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-m);" onclick="selectCustomUpload('${entry.id}')">
       ${thumbHtml}
       <div class="spec-info">
-        <div class="spec-brand" style="color:var(--green)">\uc5c5\ub85c\ub4dc \ud30c\uc77c</div>
+        <div class="spec-brand" style="color:${entry.saving ? 'var(--amber)' : 'var(--green)'}">${entry.saving ? '☁️ 저장 중… 이동하지 마세요' : '\uc5c5\ub85c\ub4dc \ud30c\uc77c'}</div>
         <div class="spec-name">${entry.name}</div>
       </div>
       <div class="spec-check">\u2713</div>
@@ -927,33 +927,45 @@ function _onUploadReady(entry){
 }
 
 // ── 업로드한 사양서를 Firebase(Storage+Firestore)에 저장 — 새로고침/다른 팀원 접속 시에도 유지됨 ──
-async function _syncSpecToCloud(entry){
-  try{
-    const file = entry.file;
-    if(!file) return;
-    const fileRef = fbStorage.ref('specs/' + entry.id + '/' + file.name);
-    await fileRef.put(file);
-    const fileUrl = await fileRef.getDownloadURL();
+let _specSaving = 0;
+// 저장 중에 창을 닫거나 다른 화면으로 이동하려 하면 경고
+window.addEventListener('beforeunload', e => { if(_specSaving > 0){ e.preventDefault(); e.returnValue = ''; } });
 
+// ── 업로드한 사양서를 Firebase에 저장 — ① 미리보기 + 목록을 먼저 저장(빠름) → ② 원본 파일 업로드(느림) ──
+async function _syncSpecToCloud(entry){
+  const file = entry.file;
+  if(!file) return;
+  _specSaving++; entry.saving = true;
+  renderSpecGrid(S.currentBrand);
+  showToast('☁️ 사양서 저장 중… 완료 메시지가 뜰 때까지 화면을 이동하지 마세요');
+  const docRef = fbDb.collection('specs').doc(entry.id);
+  try{
     let thumbUrl = null;
     if(entry.thumb){
       const thumbRef = fbStorage.ref('specs/' + entry.id + '/thumb.jpg');
       await thumbRef.putString(entry.thumb, 'data_url');
       thumbUrl = await thumbRef.getDownloadURL();
     }
-
-    await fbDb.collection('specs').doc(entry.id).set({
+    // 목록에 먼저 기록 → 이 시점부터는 다른 화면에 다녀와도 사양서가 보임 (AI 판정은 미리보기 이미지로 동작)
+    await docRef.set({
       name: entry.name,
       isPdf: !!entry.isPdf,
-      fileUrl,
+      fileUrl: null,
       thumbUrl,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+    const fileRef = fbStorage.ref('specs/' + entry.id + '/' + file.name);
+    await fileRef.put(file);
+    const fileUrl = await fileRef.getDownloadURL();
+    await docRef.update({ fileUrl });
+    showToast('☁️ 사양서 저장 완료 — 이제 다른 화면으로 이동해도 유지됩니다');
   } catch(err){
     console.error('사양서 클라우드 저장 실패', err);
-    // 이번 세션에서는 계속 쓸 수 있지만, 창을 닫으면 사라지므로 화면에 알림
     const code = (err && (err.code || err.status_)) ? (err.code || err.status_) : 'unknown';
-    showToast('❌ 사양서 저장 실패(' + code + ') — 창을 닫으면 사라집니다. Firebase Storage 규칙을 확인하세요', true);
+    showToast('❌ 사양서 저장 실패(' + code + ') — 다시 업로드해 주세요', true);
+  } finally {
+    _specSaving--; entry.saving = false;
+    renderSpecGrid(S.currentBrand);
   }
 }
 
