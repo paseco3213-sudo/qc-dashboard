@@ -529,6 +529,14 @@ tbody tr:hover td { background: var(--bg); }
 .qd .vd-btn:hover { border-color: var(--blue); background: var(--blue-l); }
 @media (max-width: 1100px) { .qd .kpi-grid { grid-template-columns: repeat(2,1fr); } .qd .charts-row, .qd .monthly-charts { grid-template-columns: 1fr !important; } }
 
+.nc-del{background:none;border:1px solid transparent;border-radius:6px;cursor:pointer;font-size:13px;padding:3px 6px;opacity:.55;transition:.15s}
+.nc-del:hover{opacity:1;border-color:var(--red-bg);background:var(--red-bg)}
+.nc-del:disabled{opacity:.3;cursor:wait}
+.go-row{cursor:pointer;border-radius:8px;transition:background .15s;margin:0 -8px;padding-left:8px!important;padding-right:8px!important}
+.go-row:hover{background:var(--blue-bg)}
+.go-row:hover .nc-name,.go-row:hover .tl-title{color:var(--blue-text);text-decoration:underline;text-underline-offset:3px}
+@keyframes rowFlash{0%,60%{background:#fff3c4}100%{background:transparent}}
+tr.row-flash td{animation:rowFlash 2.2s ease}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -851,9 +859,9 @@ tbody tr:hover td { background: var(--bg); }
         <div class="hero-kpi-sub">목표 95%</div>
       </div>
       <div class="hero-kpi">
-        <div class="hero-kpi-val" style="color:#ffb3b3">7건</div>
+        <div class="hero-kpi-val" style="color:#ffb3b3" id="sum-nc-open">7건</div>
         <div class="hero-kpi-lbl">미결 부적합</div>
-        <div class="hero-kpi-sub">기한 초과 2건</div>
+        <div class="hero-kpi-sub" id="sum-nc-overdue">기한 초과 2건</div>
       </div>
       <div class="hero-kpi">
         <div class="hero-kpi-val" style="color:#ffd97d">32개</div>
@@ -916,17 +924,17 @@ tbody tr:hover td { background: var(--bg); }
         이번주 부적합 발생
       </div>
       <div class="wc-nums">
-        <div class="wc-this" style="color:var(--red)">3</div>
-        <div class="wc-prev">전주 5건</div>
+        <div class="wc-this" style="color:var(--red)" id="sum-nc-week">3</div>
+        <div class="wc-prev" id="sum-nc-prev">전주 5건</div>
       </div>
-      <div class="week-bars">
+      <div class="week-bars" id="sum-nc-bars">
         <div class="wb" style="height:100%;background:var(--border2)"></div>
         <div class="wb" style="height:80%;background:var(--border2)"></div>
         <div class="wb" style="height:90%;background:var(--border2)"></div>
         <div class="wb" style="height:100%;background:var(--border2)"></div>
         <div class="wb" style="height:60%;background:var(--red)"></div>
       </div>
-      <span class="wc-delta delta-dn">▼ -2건 전주 대비 개선</span>
+      <span class="wc-delta delta-dn" id="sum-nc-delta">▼ -2건 전주 대비 개선</span>
     </div>
     <!-- 대책서 미제출 -->
     <div class="wc-card">
@@ -955,32 +963,13 @@ tbody tr:hover td { background: var(--bg); }
   <div class="row2">
     <div class="card">
       <div class="card-head">
-        <div class="card-title">이번주 부적합 현황</div>
-        <span class="badge b-red">미처리 3건</span>
+        <div class="card-title">부적합 현황 <span style="font-size:11px;font-weight:400;color:var(--text3)">(최근 등록순 · 부적합 관리와 연동)</span></div>
+        <span class="badge b-red" id="sum-nc-badge">미처리 3건</span>
       </div>
-      <div class="nc-row">
-        <div class="nc-dot" style="background:var(--red)"></div>
-        <div class="nc-body"><div class="nc-name">(주)테크노전자마산공장 · PBA-H001 치수불량</div><div class="nc-meta">발생 04.07 · 처리기한 04.08 · 심각</div></div>
-        <span class="badge b-red">미처리</span>
-      </div>
-      <div class="nc-row">
-        <div class="nc-dot" style="background:var(--amber)"></div>
-        <div class="nc-body"><div class="nc-name">동일전자(주) · CAP-M305 외관불량</div><div class="nc-meta">발생 04.05 · 처리기한 04.12 · 경미</div></div>
-        <span class="badge b-amber">대책서접수</span>
-      </div>
-      <div class="nc-row">
-        <div class="nc-dot" style="background:var(--blue)"></div>
-        <div class="nc-body"><div class="nc-name">경원산업 주식회사 · SW-7780 기능불량</div><div class="nc-meta">발생 04.03 · 처리기한 04.10 · 심각</div></div>
-        <span class="badge b-blue">개선중</span>
-      </div>
-      <div class="nc-row">
-        <div class="nc-dot" style="background:var(--green)"></div>
-        <div class="nc-body"><div class="nc-name">광림포장/태성포장 · BOX-A010 도장불량</div><div class="nc-meta">발생 03.28 · 완료 04.05</div></div>
-        <span class="badge b-green">완료</span>
-      </div>
+      <div id="sum-nc-list"></div>
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:16px">
-        <div style="font-size:12px;color:var(--text2)">전주 대비 부적합 발생: <strong style="color:var(--green)">▼ 2건 감소</strong></div>
-        <div style="font-size:12px;color:var(--text2)">누계 처리율: <strong style="color:var(--blue)">73.2%</strong></div>
+        <div style="font-size:12px;color:var(--text2)">전주 대비 부적합 발생: <strong id="sum-nc-wow" style="color:var(--green)">▼ 2건 감소</strong></div>
+        <div style="font-size:12px;color:var(--text2)">누계 처리율: <strong id="sum-nc-rate" style="color:var(--blue)">73.2%</strong></div>
       </div>
     </div>
 
@@ -1048,10 +1037,10 @@ tbody tr:hover td { background: var(--bg); }
   <div class="row2">
     <div class="card">
       <div class="card-head"><div class="card-title">진행중인 업무</div></div>
-      <div class="tl-row"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-body"><div class="tl-title">동일전자(주) 대책서 접수 완료</div><div class="tl-time">2026.04.07 09:30</div></div><span class="badge b-green">완료</span></div>
-      <div class="tl-row"><div class="tl-dot" style="background:var(--blue)"></div><div class="tl-body"><div class="tl-title">(주)테크노전자마산공장 PBA-H001 대책서 요청 발송</div><div class="tl-time">2026.04.07 11:00</div></div><span class="badge b-blue">진행</span></div>
-      <div class="tl-row"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-body"><div class="tl-title">동아콘트롤 변경점 통보 검토 필요</div><div class="tl-time">만료 D-2</div></div><span class="badge b-amber">긴급</span></div>
-      <div class="tl-row"><div class="tl-dot" style="background:var(--border2)"></div><div class="tl-body"><div class="tl-title">4월 정기 업체 평가 예정</div><div class="tl-time">2026.04.15</div></div><span class="badge b-gray">예정</span></div>
+      <div class="tl-row go-row" onclick="goToItem('caplan','동일전자')" title="대책서에서 보기"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-body"><div class="tl-title">동일전자(주) 대책서 접수 완료</div><div class="tl-time">2026.04.07 09:30</div></div><span class="badge b-green">완료</span></div>
+      <div class="tl-row go-row" onclick="goToItem('nonconf','PBA-H001')" title="부적합 관리에서 보기"><div class="tl-dot" style="background:var(--blue)"></div><div class="tl-body"><div class="tl-title">(주)테크노전자마산공장 PBA-H001 대책서 요청 발송</div><div class="tl-time">2026.04.07 11:00</div></div><span class="badge b-blue">진행</span></div>
+      <div class="tl-row go-row" onclick="goToItem('change','동아콘트롤')" title="변경점 관리에서 보기"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-body"><div class="tl-title">동아콘트롤 변경점 통보 검토 필요</div><div class="tl-time">만료 D-2</div></div><span class="badge b-amber">긴급</span></div>
+      <div class="tl-row go-row" onclick="goToItem('sup-eval','')" title="정기 평가에서 보기"><div class="tl-dot" style="background:var(--border2)"></div><div class="tl-body"><div class="tl-title">4월 정기 업체 평가 예정</div><div class="tl-time">2026.04.15</div></div><span class="badge b-gray">예정</span></div>
     </div>
     <div class="card">
       <div class="card-head"><div class="card-title">이번주 입고 합격률</div><span style="font-size:12px;color:var(--text2)">34건 중 31건 합격</span></div>
@@ -1131,7 +1120,7 @@ tbody tr:hover td { background: var(--bg); }
       <select><option>전체 유형</option><option>치수불량</option><option>외관불량</option><option>기능불량</option><option>도장불량</option></select>
     </div>
     <div class="tbl-wrap"><table>
-      <thead><tr><th>부적합번호</th><th>발생일</th><th>업체</th><th>품번</th><th>불량유형</th><th>불량수량</th><th>심각도</th><th>처리기한</th><th>상태</th></tr></thead>
+      <thead><tr><th>부적합번호</th><th>발생일</th><th>업체</th><th>품번</th><th>불량유형</th><th>불량수량</th><th>심각도</th><th>처리기한</th><th>상태</th><th style="width:44px"></th></tr></thead>
       <tbody>
         <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">NC-2604-001</td><td>04.01</td><td>(주)테크노전자마산공장</td><td>PBA-H001</td><td>치수불량</td><td>3</td><td><span class="badge b-red">심각</span></td><td>04.08</td><td><span class="badge b-red">미처리</span></td></tr>
         <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:12px">NC-2604-002</td><td>04.02</td><td>동일전자(주)</td><td>CAP-M305</td><td>외관불량</td><td>2</td><td><span class="badge b-amber">경미</span></td><td>04.12</td><td><span class="badge b-amber">대책서접수</span></td></tr>
@@ -1807,6 +1796,116 @@ function nav(id, el) {
   if (id === 'defect' && window.QD) QD.onShow();
 }
 
+
+
+/* ── 현황 요약 ↔ 부적합 관리 연동: 부적합 표가 바뀔 때마다 요약을 다시 계산 ── */
+function _ncParseDate(txt, today){
+  const t = String(txt || '').trim();
+  let m = t.match(/^(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  m = t.match(/^(\d{1,2})[.\-\/](\d{1,2})/);
+  if (!m) return null;
+  const mo = +m[1] - 1, d = +m[2];
+  let y = today.getFullYear();
+  if (mo > today.getMonth() + 1) y--;          // 미래 달이면 작년 날짜로
+  return new Date(y, mo, d);
+}
+function _ncRows(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  return [...document.querySelectorAll('#sec-nonconf table tbody tr')].map(tr => {
+    const c = tr.cells;
+    if (!c || c.length < 9) return null;
+    const seq = (c[0].textContent.match(/NC-\d{4}-\d+/) || [''])[0];
+    return {
+      seq, vendor: c[2].textContent.trim(), pnum: c[3].textContent.trim(), dtype: c[4].textContent.trim(),
+      sev: c[6].textContent.trim(), dueTxt: c[7].textContent.trim(), status: c[8].textContent.trim(),
+      date: _ncParseDate(c[1].textContent, today), due: _ncParseDate(c[7].textContent, today), dateTxt: c[1].textContent.trim()
+    };
+  }).filter(Boolean);
+}
+function renderNcSummary(){
+  const list = document.getElementById('sum-nc-list');
+  if (!list) return;
+  const rows = _ncRows();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const open = rows.filter(r => r.status !== '완료');
+  const overdue = open.filter(r => r.due && r.due < today);
+  const unhandled = rows.filter(r => r.status === '미처리');
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+
+  set('sum-nc-open', open.length + '건');
+  set('sum-nc-overdue', '기한 초과 ' + overdue.length + '건');
+  set('sum-nc-badge', '미처리 ' + unhandled.length + '건');
+  set('sum-nc-rate', rows.length ? (Math.round((rows.length - open.length) / rows.length * 1000) / 10) + '%' : '—');
+
+  // 주간 집계 (월요일 시작, 최근 5주)
+  const monday = new Date(today); monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const weeks = [4,3,2,1,0].map(k => {
+    const st = new Date(monday); st.setDate(monday.getDate() - 7 * k);
+    const en = new Date(st); en.setDate(st.getDate() + 7);
+    return rows.filter(r => r.date && r.date >= st && r.date < en).length;
+  });
+  const thisW = weeks[4], prevW = weeks[3], diff = thisW - prevW;
+  set('sum-nc-week', thisW);
+  set('sum-nc-prev', '전주 ' + prevW + '건');
+  const delta = document.getElementById('sum-nc-delta');
+  if (delta){
+    delta.className = 'wc-delta ' + (diff > 0 ? 'delta-up' : 'delta-dn');
+    delta.textContent = diff > 0 ? `▲ +${diff}건 전주 대비 증가` : diff < 0 ? `▼ ${diff}건 전주 대비 개선` : '― 전주와 동일';
+  }
+  const wow = document.getElementById('sum-nc-wow');
+  if (wow){
+    wow.textContent = diff > 0 ? `▲ ${diff}건 증가` : diff < 0 ? `▼ ${-diff}건 감소` : '변동 없음';
+    wow.style.color = diff > 0 ? 'var(--red)' : 'var(--green)';
+  }
+  const bars = document.getElementById('sum-nc-bars');
+  if (bars){
+    const mx = Math.max(1, ...weeks);
+    bars.innerHTML = weeks.map((v, i) => `<div class="wb" title="${['4주전','3주전','2주전','지난주','이번주'][i]} ${v}건" style="height:${Math.max(8, Math.round(v / mx * 100))}%;background:${i === 4 ? 'var(--red)' : 'var(--border2)'}"></div>`).join('');
+  }
+
+  // 목록: 최근 등록순 5건
+  const dotClr = { '미처리':'var(--red)', '대책서접수':'var(--amber)', '개선중':'var(--blue)', '완료':'var(--green)' };
+  const badge = { '미처리':'b-red', '대책서접수':'b-amber', '개선중':'b-blue', '완료':'b-green' };
+  const esc = v => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  list.innerHTML = rows.slice(0, 5).map(r => `
+      <div class="nc-row go-row" onclick="goToItem('nonconf','${esc(r.seq || r.pnum).replace(/'/g, "\\'")}')" title="부적합 관리에서 보기">
+        <div class="nc-dot" style="background:${dotClr[r.status] || 'var(--border2)'}"></div>
+        <div class="nc-body"><div class="nc-name">${esc(r.vendor)} · ${esc(r.pnum || '—')} ${esc(r.dtype)}</div><div class="nc-meta">${esc(r.seq)} · 발생 ${esc(r.dateTxt)} · 처리기한 ${esc(r.dueTxt || '—')} · ${esc(r.sev)}</div></div>
+        <span class="badge ${badge[r.status] || 'b-gray'}">${esc(r.status || '—')}</span>
+      </div>`).join('')
+    || '<div style="padding:22px;text-align:center;color:var(--text3);font-size:13px">등록된 부적합이 없습니다 ✨</div>';
+  // 진행중인 업무 중 삭제된 부적합을 가리키는 항목은 숨김
+  const allTxt = rows.map(r => r.seq + ' ' + r.pnum).join(' ');
+  document.querySelectorAll('.tl-row.go-row').forEach(el => {
+    const m = (el.getAttribute('onclick') || '').match(/goToItem\('nonconf','([^']+)'\)/);
+    if (m) el.style.display = allTxt.includes(m[1]) ? '' : 'none';
+  });
+  if (rows.length > 5) list.innerHTML += `<div style="font-size:11px;color:var(--text3);padding-top:8px">외 ${rows.length - 5}건 — <a href="#" onclick="goToItem('nonconf','');return false" style="color:var(--blue)">전체 보기</a></div>`;
+}
+(function(){
+  let t = null;
+  const kick = () => { clearTimeout(t); t = setTimeout(renderNcSummary, 80); };
+  const start = () => {
+    const tb = document.querySelector('#sec-nonconf table tbody');
+    if (tb) new MutationObserver(kick).observe(tb, { childList: true, subtree: true, characterData: true });
+    renderNcSummary();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+
+/* ── 현황 요약의 항목 클릭 → 해당 메뉴로 이동하고 관련 행을 강조 ── */
+function goToItem(page, match){
+  const navEl = document.querySelector(`.nav-item[onclick*="nav('${page}'"]`);
+  if (!navEl) return;
+  nav(page, navEl);
+  document.querySelector('.content')?.scrollTo({ top: 0 });
+  if (!match) return;
+  const rows = [...document.querySelectorAll('#sec-' + page + ' table tbody tr')].filter(tr => tr.textContent.includes(match));
+  if (!rows.length){ toast('해당 항목을 찾을 수 없습니다 (삭제되었을 수 있습니다)'); return; }
+  rows[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  rows.forEach(tr => { tr.classList.remove('row-flash'); void tr.offsetWidth; tr.classList.add('row-flash'); });
+}
 function openRegModal() {
   document.getElementById('reg-modal-title').textContent = regTitles[currentPage] || '신규 등록';
   document.getElementById('reg-modal').classList.add('open');
@@ -1867,7 +1966,7 @@ document.getElementById('today-date').textContent = `${today.getFullYear()}.${St
 /* ── 등록 카운터 ── */
 let iqcSeq = 7, ncSeq = 5, caSeq = 4, ipSeq = 1, ecnSeq = 5, irSeq = 5, vSeq = 7;
 function pad2(n){ return String(n).padStart(2,'0'); }
-function nowYM(){ return '2604'; }
+function nowYM(){ const d = new Date(); return String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, '0'); }
 
 /* ── 결과별 badge ── */
 function resultBadge(v){
@@ -1933,6 +2032,70 @@ async function _uploadAttachments(idPrefix){
   return results;
 }
 
+
+/* ── 협력사 목록 연동: 등록 폼의 업체명 선택지 ── */
+const _cloudVendorNames = new Set();   // '협력사 등록'으로 Firebase에 저장된 업체명
+function vendorNamesAll(){
+  const set = new Set(vendorStore.map(v => v.name).filter(Boolean));
+  _cloudVendorNames.forEach(n => set.add(n));
+  return [...set].sort((a, b) => a.replace(/^\(주\)|^㈜/, '').localeCompare(b.replace(/^\(주\)|^㈜/, ''), 'ko'));
+}
+function vendorOptionsHtml(){
+  const names = vendorNamesAll();
+  const esc = v => String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+  return `<option value="">-- 업체 선택 (${names.length}개사) --</option>` + names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+}
+
+/* ── 부적합 삭제 ── */
+function ncDelCell(){
+  return `<td style="text-align:center"><button type="button" class="nc-del" onclick="event.stopPropagation();deleteNcRow(this)" title="삭제">🗑️</button></td>`;
+}
+async function deleteNcRow(btn){
+  const tr = btn.closest('tr');
+  if (!tr) return;
+  const seq = (tr.cells[0]?.textContent || '').match(/NC-\d{4}-\d+/)?.[0] || '이 항목';
+  if (!confirm(`부적합 ${seq}을(를) 삭제하시겠습니까?\n팀원 모두의 화면에서 삭제되며 되돌릴 수 없습니다.`)) return;
+  btn.disabled = true;
+  try {
+    if (tr.dataset.docid && tr.dataset.col) {
+      await fbDb.collection(tr.dataset.col).doc(tr.dataset.docid).delete();
+    } else {
+      // 화면에 기본으로 들어 있던 예시 행 → 숨김 목록에 저장해서 모두에게서 안 보이게
+      await fbDb.collection('nc_hidden').doc(seq).set({ seq, hiddenAt: firebase.firestore.FieldValue.serverTimestamp() });
+    }
+    tr.remove();
+    toast(`🗑️ ${seq} 삭제 완료`);
+  } catch (err) {
+    console.error('부적합 삭제 실패', err);
+    btn.disabled = false;
+    const code = (err && err.code) ? err.code : 'unknown';
+    toast('❌ 삭제 실패: ' + code + (code === 'permission-denied' ? ' (Firebase 보안 규칙 확인 필요)' : ''));
+  }
+}
+/* 기본 예시 행에도 삭제 버튼을 붙이고, 이미 삭제(숨김)된 예시 행은 감춤 */
+async function _initNcStaticRows(){
+  const rows = [...document.querySelectorAll('#sec-nonconf table tbody tr')].filter(tr => !tr.dataset.docid);
+  rows.forEach(tr => { if (!tr.querySelector('.nc-del')) tr.insertAdjacentHTML('beforeend', ncDelCell()); });
+  try {
+    const snap = await fbDb.collection('nc_hidden').get();
+    const hidden = new Set(snap.docs.map(d => d.id));
+    rows.forEach(tr => {
+      const seq = (tr.cells[0]?.textContent || '').match(/NC-\d{4}-\d+/)?.[0];
+      if (seq && hidden.has(seq)) tr.remove();
+    });
+  } catch (err) { console.error('부적합 숨김 목록 로드 실패', err); }
+}
+/* 다음 부적합번호: 표에 있는 같은 월 번호 중 가장 큰 값 + 1 (삭제 후에도 번호가 겹치지 않게) */
+function nextNcSeq(){
+  const ym = nowYM();
+  let max = 0;
+  document.querySelectorAll('#sec-nonconf table tbody tr').forEach(tr => {
+    const m = (tr.cells[0]?.textContent || '').match(new RegExp('NC-' + ym + '-(\\d+)'));
+    if (m) max = Math.max(max, parseInt(m[1]));
+  });
+  return 'NC-' + ym + '-' + pad2(max + 1);
+}
+
 /* ── 첨부파일 링크 + 수정 버튼 렌더링 (각 행 템플릿에서 공용으로 사용) ── */
 function attachHtml(d){
   if (!d.attachments || !d.attachments.length) return '';
@@ -1951,7 +2114,7 @@ function rowIqc(d){
 }
 function rowNc(d){
   const sevMap = {'심각':'b-red','보통':'b-gray','경미':'b-amber'};
-  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td>${d.dtype}</td><td>${d.dqty}</td><td><span class="badge ${sevMap[d.sev]||'b-gray'}">${d.sev}</span></td><td>${d.due||'—'}</td><td><span class="badge b-amber">미처리</span></td>`;
+  return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td>${d.dtype}</td><td>${d.dqty}</td><td><span class="badge ${sevMap[d.sev]||'b-gray'}">${d.sev}</span></td><td>${d.due||'—'}</td><td><span class="badge b-amber">미처리</span></td>${ncDelCell()}`;
 }
 function rowCa(d){
   return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>—</td><td>${d.ncRef}</td><td>${d.mmdd}</td><td>${d.due||'—'}</td><td><span class="badge b-amber">검토중</span></td>`;
@@ -1969,6 +2132,7 @@ function rowEcn(d){
   return `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px">${d.seq}${attachHtml(d)}${editHtml(d)}</td><td>${d.mmdd}</td><td>${d.vendor}</td><td>${d.pnum}</td><td><span class="tag">${d.ctype}</span></td><td>${d.cdesc}</td><td>${d.appDate||'—'}</td><td><span class="badge b-amber">검토필요</span></td>`;
 }
 function rowSup(d){
+  if (d && d.name) _cloudVendorNames.add(d.name);
   return `<td style="color:var(--text2);font-family:'IBM Plex Mono',monospace;font-size:12px">${d.code}${attachHtml(d)}${editHtml(d)}</td><td><strong>${d.name}</strong></td><td><span class="tag">${d.cat}</span></td><td>${d.pm}</td><td>${d.tel}</td><td><span class="badge b-gray">심사중</span></td><td>—</td><td>—</td><td><span class="badge b-blue">등록중</span></td><td><button class="btn btn-sm" onclick="openDetail('${d.name}')">상세</button></td>`;
 }
 function rowIr(d){
@@ -2124,7 +2288,7 @@ async function submitReg(){
       tbody.prepend(tr);
     }
     if(result === '불합격'){
-      const ncSeqVal = 'NC-' + nowYM() + '-' + pad2(ncSeq++);
+      const ncSeqVal = nextNcSeq(); ncSeq++;
       const d2 = { seq: ncSeqVal, mmdd, vendor, pnum, dtype: ncDesc||'외관불량', dqty: ncQty, sev: '심각', due: '' };
       const ncId = await _saveRecordToCloud('nc_records', d2);
       d2._docId = ncId; d2._col = 'nc_records';
@@ -2149,8 +2313,8 @@ async function submitReg(){
     const dqty   = inputs[3]?.value || '0';
     const sev    = inputs[4]?.value || '보통';
     const due    = inputs[5]?.value || '';
-    if(!vendor){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('업체명은 필수입니다.'); return; }
-    const seq  = 'NC-' + nowYM() + '-' + pad2(ncSeq++);
+    if(!vendor){ if(submitBtn){submitBtn.disabled=false;submitBtn.textContent='등록';} toast('업체명을 선택하세요.'); return; }
+    const seq  = nextNcSeq(); ncSeq++;
     const attachments = await _uploadAttachments(seq);
     const d = { seq, mmdd: document.getElementById('today-date').textContent.slice(5), vendor, pnum, dtype, dqty, sev, due, attachments };
     const newId = await _saveRecordToCloud('nc_records', d);
@@ -2326,6 +2490,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const n1 = await _loadCloudRecords('iqc_records', '#sec-incoming table tbody', rowIqc);
     const n2 = await _loadCloudRecords('nc_records', '#sec-nonconf table tbody', rowNc);
+    await _initNcStaticRows();
     const n3 = await _loadCloudRecords('ca_records', '#sec-caplan .card:first-child table tbody', rowCa);
     const n4 = await _loadCloudRecords('improve_records', '#sec-improve table tbody', rowIp);
     const qCount = await _loadCloudRecords('quality_records', '#quality-tbody-1', rowQuality);
@@ -2438,7 +2603,7 @@ function iqcCalcRate(){
 }
 
 function regFormNC(){ return `<div class="fgrid">
-  <div class="fg"><label>업체명</label><select><option>(주)테크노전자마산공장</option><option>동일전자(주)</option><option>경원산업 주식회사</option><option>광림포장/태성포장</option><option>동아콘트롤</option><option>노바텍</option></select></div>
+  <div class="fg"><label>업체명</label><select>${vendorOptionsHtml()}</select></div>
   <div class="fg"><label>품번</label><input type="text" placeholder="예) PCB-A102"></div>
   <div class="fg"><label>불량유형</label><select><option>치수불량</option><option>외관불량</option><option>기능불량</option><option>도장불량</option><option>기타</option></select></div>
   <div class="fg"><label>불량수량</label><input type="number" placeholder="0"></div>
@@ -2473,7 +2638,7 @@ function regFormQuality(){ return `<div class="fgrid">
 </div>`; }
 
 function regFormECN(){ return `<div class="fgrid">
-  <div class="fg"><label>업체명</label><select><option>(주)테크노전자마산공장</option><option>동일전자(주)</option><option>경원산업 주식회사</option><option>광림포장/태성포장</option><option>동아콘트롤</option><option>노바텍</option></select></div>
+  <div class="fg"><label>업체명</label><select>${vendorOptionsHtml()}</select></div>
   <div class="fg"><label>품번</label><input type="text" placeholder="예) PCB-A102"></div>
   <div class="fg"><label>변경유형</label><select><option>도면변경</option><option>재료변경</option><option>공정변경</option><option>설비변경</option></select></div>
   <div class="fg"><label>적용 예정일</label><input type="date"></div>
@@ -2499,7 +2664,7 @@ function regFormAudit(){ return `<div class="fgrid">
 </div>`; }
 
 function regFormIR(){ return `<div class="fgrid">
-  <div class="fg"><label>업체명</label><select><option>(주)테크노전자마산공장</option><option>동일전자(주)</option><option>경원산업 주식회사</option><option>광림포장/태성포장</option><option>동아콘트롤</option><option>노바텍</option></select></div>
+  <div class="fg"><label>업체명</label><select>${vendorOptionsHtml()}</select></div>
   <div class="fg"><label>유형</label><select><option>품질개선</option><option>납기개선</option><option>원가절감</option><option>기술지원</option></select></div>
   <div class="fg full"><label>요청 내용</label><input type="text" placeholder="요청 내용 요약"></div>
   <div class="fg"><label>완료 기한</label><input type="date"></div>
@@ -2507,7 +2672,7 @@ function regFormIR(){ return `<div class="fgrid">
 </div>`; }
 
 function regFormMsg(){ return `<div class="fgrid">
-  <div class="fg full"><label>수신 업체</label><select><option>(주)테크노전자마산공장</option><option>동일전자(주)</option><option>경원산업 주식회사</option><option>광림포장/태성포장</option><option>동아콘트롤</option><option>노바텍</option></select></div>
+  <div class="fg full"><label>수신 업체</label><select>${vendorOptionsHtml()}</select></div>
   <div class="fg"><label>유형</label><select><option>일반안내</option><option>개선요청</option><option>인증요청</option><option>계약관련</option><option>경고</option></select></div>
   <div class="fg"><label>우선순위</label><select><option>일반</option><option>높음</option><option>긴급</option></select></div>
   <div class="fg full"><label>제목</label><input type="text" placeholder="메시지 제목"></div>
