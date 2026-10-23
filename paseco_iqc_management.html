@@ -520,6 +520,11 @@ tbody tr:hover td { background: var(--bg); }
 .qd .vd-recur { font-size: 12px; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: none; }
 .qd .vd-recur.on { display: block; background: var(--red-l); color: var(--red); border: 1px solid #FECACA; }
 .qd .vd-recur.ok { display: block; background: var(--green-l); color: var(--green); border: 1px solid #A7F3D0; }
+.qd .vd-range { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--txt-sub); padding: 3px 4px 3px 10px; border-radius: 8px; border: 1px solid transparent; }
+.qd .vd-range.on { background: var(--blue-l); border-color: var(--blue-m); }
+.qd .vd-range-lbl { font-size: 11px; font-weight: 600; }
+.qd .vd-range input { border: 1px solid var(--border); border-radius: 7px; padding: 5px 8px; font-size: 12px; font-family: var(--font); color: var(--txt); background: #fff; outline: none; }
+.qd .vd-range input:focus { border-color: var(--blue); }
 .qd .vd-btn { padding: 4px 10px; font-size: 11px; border-radius: 6px; border: 1px solid var(--border); background: #fff; color: var(--blue); cursor: pointer; font-family: var(--font); white-space: nowrap; }
 .qd .vd-btn:hover { border-color: var(--blue); background: var(--blue-l); }
 @media (max-width: 1100px) { .qd .kpi-grid { grid-template-columns: repeat(2,1fr); } .qd .charts-row, .qd .monthly-charts { grid-template-columns: 1fr !important; } }
@@ -799,6 +804,13 @@ tbody tr:hover td { background: var(--bg); }
         <div class="search-wrap">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
           <input class="search-input" id="vd-search" placeholder="부품명·불량내용 검색..." oninput="QD.renderValid()">
+        </div>
+        <div class="vd-range" id="vd-range">
+          <span class="vd-range-lbl">발생일</span>
+          <input type="date" id="vd-from" onchange="QD.renderValid()">
+          <span>~</span>
+          <input type="date" id="vd-to" onchange="QD.renderValid()">
+          <button class="btn btn-ghost" style="padding:5px 11px;font-size:11px" onclick="QD.clearValidRange()">기간 해제</button>
         </div>
         <span class="filter-count" id="vd-count"></span>
       </div>
@@ -4536,11 +4548,24 @@ let VALID = {};        // docId → 확인 기록
 let _vdEditing = null; // 편집 중인 불량 행
 
 const MONTH_IDX = m => ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'].indexOf(m);
-function vdOrder(r) {                    // 정렬·재발 비교용 (월*100 + 일)
+const VD_YEAR = 2026;                    // 엑셀 날짜(M/D)에 연도가 없어 기준 연도로 사용
+function vdDate(r) {                     // 발생일 → Date (날짜를 못 읽으면 시트 월의 1일)
   const mi = MONTH_IDX(r.month);
-  const d = String(r.date || '').match(/(\d{1,2})\D+(\d{1,2})/);
-  const day = d ? parseInt(d[2]) : 0;
-  return (mi < 0 ? 99 : mi) * 100 + day;
+  const d = String(r.date || '').match(/^\s*(?:\d{4}\D+)?(\d{1,2})\D+(\d{1,2})/);
+  if (d) {
+    const m = parseInt(d[1]) - 1, day = parseInt(d[2]);
+    // 1월 시트에 12/30 같은 날짜가 있으면 전년도로 처리
+    const y = (mi >= 0 && m - mi > 6) ? VD_YEAR - 1 : VD_YEAR;
+    if (m >= 0 && m < 12 && day >= 1 && day <= 31) return new Date(y, m, day);
+  }
+  return new Date(VD_YEAR, mi < 0 ? 0 : mi, 1);
+}
+function vdOrder(r) { return vdDate(r).getTime(); }   // 정렬·재발 비교용
+const vdYmd = dt => dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+function clearValidRange() {
+  document.getElementById('vd-from').value = '';
+  document.getElementById('vd-to').value = '';
+  renderValid();
 }
 const vdNorm = v => String(v || '').replace(/\s+/g, '').toLowerCase();
 function vdId(r) {                       // 행 내용 → Firestore 문서 id (짧은 해시)
@@ -4565,7 +4590,16 @@ const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 let _vdRows = [];
 function renderValid() {
   const all = getAllRows();
-  const rows = getMonthRows(curMonth).slice().sort((a, b) => vdOrder(b) - vdOrder(a));
+  // 발생일 기간을 넣으면 상단 월 선택 대신 그 기간으로 조회
+  const vFrom = document.getElementById('vd-from').value;
+  const vTo = document.getElementById('vd-to').value;
+  const useRange = !!(vFrom || vTo);
+  document.getElementById('vd-range').classList.toggle('on', useRange);
+  const base = useRange
+    ? all.filter(r => { const k = vdYmd(vdDate(r)); return (!vFrom || k >= vFrom) && (!vTo || k <= vTo); })
+    : getMonthRows(curMonth);
+  const periodLbl = useRange ? (vFrom || '처음') + ' ~ ' + (vTo || '현재') : curMonth;
+  const rows = base.slice().sort((a, b) => vdOrder(b) - vdOrder(a));
   const fs = document.getElementById('vd-status').value;
   const fp = document.getElementById('vd-partner').value;
   const q = document.getElementById('vd-search').value.toLowerCase();
@@ -4589,7 +4623,7 @@ function renderValid() {
       <div class="kpi-sub">${sub}</div>
     </div>`;
   document.getElementById('vd-kpi').innerHTML =
-    kpi('--blue', '--blue-l', '확인 대상', cnt.total, '건', curMonth + ' 불량 기준') +
+    kpi('--blue', '--blue-l', '확인 대상', cnt.total, '건', periodLbl + ' 불량 기준') +
     kpi('--green', '--green-l', '유효 확인 완료', cnt.done, '건', '완료율 ' + pct + '%') +
     kpi('--amber', '--amber-l', '미확인 · 확인중', cnt.todo + cnt.ing, '건', '확인중 ' + cnt.ing + '건 포함') +
     kpi('--red', '--red-l', '재발 발생', cnt.recur, '건', '동일 협력사·부품 재발생');
@@ -4707,7 +4741,7 @@ function onShow() {
   refreshCurrentPage();
 }
 
-window.QD = { gotoPage, changeMonth, doExportCSV, openModal, closeModal, applyUpload, handleFile, runFilter, resetFilters, openTrendModal, closeTrendModal, onShow, renderValid, openValid, closeValid, saveValid };
+window.QD = { gotoPage, changeMonth, doExportCSV, openModal, closeModal, applyUpload, handleFile, runFilter, resetFilters, openTrendModal, closeTrendModal, onShow, renderValid, openValid, closeValid, saveValid, clearValidRange };
 })();
 </script>
 </body>
