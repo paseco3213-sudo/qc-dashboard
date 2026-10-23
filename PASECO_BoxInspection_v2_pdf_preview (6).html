@@ -286,6 +286,7 @@ body{background:var(--bg);color:var(--txt);font-family:var(--font);font-size:13p
       IQC_Management로
     </a>
     <button type="button" class="hdr-badge hdr-btn" id="hist-toggle" onclick="toggleHistView()" title="모델별 박스 검사 이력 보기">📊 박스 검사 이력</button>
+    <button type="button" class="hdr-badge hdr-btn" onclick="runStorageCheck()" title="Firebase 저장소 연결 점검">🔧 연결 점검</button>
     <div class="hdr-badge">🤖 AI 자동 판정</div>
   </div>
 </div>
@@ -931,41 +932,77 @@ let _specSaving = 0;
 // 저장 중에 창을 닫거나 다른 화면으로 이동하려 하면 경고
 window.addEventListener('beforeunload', e => { if(_specSaving > 0){ e.preventDefault(); e.returnValue = ''; } });
 
-// ── 업로드한 사양서를 Firebase에 저장 — ① 미리보기 + 목록을 먼저 저장(빠름) → ② 원본 파일 업로드(느림) ──
+
+/* 이미지(data URL)를 JPEG로 줄여서 Firestore에 직접 넣을 수 있는 크기(기본 700KB 이하)로 만듦 */
+function _compressDataUrl(src, maxW, maxBytes){
+  return new Promise(resolve => {
+    if (!src || !String(src).startsWith('data:')) return resolve(null);
+    const img = new Image();
+    img.onload = () => {
+      let w = Math.min(maxW, img.naturalWidth || maxW), q = 0.8, out = null;
+      for (let i = 0; i < 8; i++) {
+        const h = Math.round((img.naturalHeight || w) * w / (img.naturalWidth || w));
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h);
+        out = c.toDataURL('image/jpeg', q);
+        if (out.length * 0.75 <= maxBytes) break;
+        if (q > 0.5) q -= 0.15; else w = Math.round(w * 0.75);
+      }
+      resolve(out && out.length * 0.75 <= maxBytes ? out : null);
+    };
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+// ── 업로드한 사양서를 Firebase에 저장 ──
+//   ① 미리보기 그림(압축)을 Firestore 목록에 직접 저장 → Storage가 막혀 있어도 사양서는 남음
+//   ② 원본 파일·고화질 미리보기는 Storage에 추가 보관 (실패해도 사양서 사용에는 지장 없음)
 async function _syncSpecToCloud(entry){
   const file = entry.file;
   if(!file) return;
   _specSaving++; entry.saving = true;
   renderSpecGrid(S.currentBrand);
-  showToast('☁️ 사양서 저장 중… 완료 메시지가 뜰 때까지 화면을 이동하지 마세요');
+  showToast('☁️ 사양서 저장 중… 잠시만 기다려 주세요');
   const docRef = fbDb.collection('specs').doc(entry.id);
+  let saved = false;
   try{
-    let thumbUrl = null;
-    if(entry.thumb){
-      const thumbRef = fbStorage.ref('specs/' + entry.id + '/thumb.jpg');
-      await thumbRef.putString(entry.thumb, 'data_url');
-      thumbUrl = await thumbRef.getDownloadURL();
-    }
-    // 목록에 먼저 기록 → 이 시점부터는 다른 화면에 다녀와도 사양서가 보임 (AI 판정은 미리보기 이미지로 동작)
+    const thumbData = await _compressDataUrl(entry.thumb, 1600, 700000);
     await docRef.set({
       name: entry.name,
       isPdf: !!entry.isPdf,
+      thumbData: thumbData || null,
+      thumbUrl: null,
       fileUrl: null,
-      thumbUrl,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    const fileRef = fbStorage.ref('specs/' + entry.id + '/' + file.name);
-    await fileRef.put(file);
-    const fileUrl = await fileRef.getDownloadURL();
-    await docRef.update({ fileUrl });
-    showToast('☁️ 사양서 저장 완료 — 이제 다른 화면으로 이동해도 유지됩니다');
+    saved = true;
+    showToast('☁️ 사양서 저장 완료 — 다른 화면에 다녀와도 유지됩니다');
   } catch(err){
-    console.error('사양서 클라우드 저장 실패', err);
-    const code = (err && (err.code || err.status_)) ? (err.code || err.status_) : 'unknown';
-    showToast('❌ 사양서 저장 실패(' + code + ') — 다시 업로드해 주세요', true);
+    console.error('사양서 목록 저장 실패', err);
+    const code = (err && err.code) ? err.code : 'unknown';
+    showToast('❌ 사양서 저장 실패(' + code + ') — 상단 🔧 연결 점검을 눌러 확인하세요', true);
   } finally {
     _specSaving--; entry.saving = false;
     renderSpecGrid(S.currentBrand);
+  }
+  if(!saved) return;
+  // ② 원본 보관 (백그라운드)
+  try{
+    const upd = {};
+    if(entry.thumb){
+      const thumbRef = fbStorage.ref('specs/' + entry.id + '/thumb.jpg');
+      await thumbRef.putString(entry.thumb, 'data_url');
+      upd.thumbUrl = await thumbRef.getDownloadURL();
+    }
+    const fileRef = fbStorage.ref('specs/' + entry.id + '/' + file.name);
+    await fileRef.put(file);
+    upd.fileUrl = await fileRef.getDownloadURL();
+    await docRef.update(upd);
+  } catch(err){
+    console.error('사양서 원본 보관 실패 (사양서 자체는 저장됨)', err);
+    const code = (err && (err.code || err.status_)) || 'unknown';
+    showToast('⚠️ 원본 파일 보관 실패(' + code + ') — 사양서는 저장되어 계속 사용할 수 있습니다', true);
   }
 }
 
@@ -975,7 +1012,8 @@ async function _loadCloudSpecs(){
     const snap = await fbDb.collection('specs').orderBy('createdAt', 'desc').limit(50).get();
     const cloudEntries = snap.docs.map(doc => {
       const d = doc.data();
-      return { id: doc.id, name: d.name, thumb: d.thumbUrl || null, isPdf: !!d.isPdf, loading: false, error: !d.thumbUrl && d.isPdf };
+      const thumb = d.thumbUrl || d.thumbData || null;
+      return { id: doc.id, name: d.name, thumb, isPdf: !!d.isPdf, loading: false, error: !thumb && d.isPdf };
     });
     // 이번 세션에서 이미 업로드한 항목과 중복되지 않게 병합
     const existingIds = new Set(S.customUploads.map(u=>u.id));
@@ -1443,28 +1481,34 @@ function saveHistory(r){
 
 // ── 판정 이력을 Firebase에 저장 — 새로고침/다른 팀원 접속 시에도 유지됨 ──
 async function _syncHistoryToCloud(entryLocal){
+  const id = entryLocal.id || ('insp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7));
+  const docRef = fbDb.collection('inspections').doc(id);
   try{
-    const id = entryLocal.id || ('insp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7));
-    let photoUrl = null;
-    if(entryLocal.photoUrl){
-      const photoRef = fbStorage.ref('inspections/' + id + '/front.jpg');
-      await photoRef.putString(entryLocal.photoUrl, 'data_url');
-      photoUrl = await photoRef.getDownloadURL();
-    }
-    await fbDb.collection('inspections').doc(id).set({
+    const photoThumb = await _compressDataUrl(entryLocal.photoUrl, 480, 120000);
+    await docRef.set({
       product: entryLocal.product,
       model: entryLocal.model || entryLocal.product,
       verdict: entryLocal.verdict,
       score: entryLocal.score,
       defects: entryLocal.defects || [],
       summary: entryLocal.summary || '',
-      photoUrl,
+      photoThumb: photoThumb || null,
+      photoUrl: null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   } catch(err){
     console.error('판정 이력 클라우드 저장 실패', err);
     const code = (err && err.code) ? err.code : 'unknown';
-    showToast('❌ 판정 이력 저장 실패: ' + code + (code==='permission-denied' ? ' (Firebase 보안 규칙 확인 필요)' : ''), true);
+    showToast('❌ 판정 이력 저장 실패: ' + code + ' — 상단 🔧 연결 점검을 눌러 확인하세요', true);
+    return;
+  }
+  if(!entryLocal.photoUrl) return;
+  try{
+    const photoRef = fbStorage.ref('inspections/' + id + '/front.jpg');
+    await photoRef.putString(entryLocal.photoUrl, 'data_url');
+    await docRef.update({ photoUrl: await photoRef.getDownloadURL() });
+  } catch(err){
+    console.error('현물 사진 원본 보관 실패 (이력은 저장됨)', err);
   }
 }
 
@@ -1475,7 +1519,7 @@ async function _loadCloudHistory(){
     const cloudHist = snap.docs.map(doc=>{
       const d = doc.data();
       const date = (d.createdAt && d.createdAt.toDate) ? d.createdAt.toDate().toLocaleString('ko-KR') : '';
-      return { id: doc.id, date, product: d.product||'제품', verdict: d.verdict, score: d.score, photoUrl: d.photoUrl||'' };
+      return { id: doc.id, date, product: d.product||'제품', verdict: d.verdict, score: d.score, photoUrl: d.photoUrl||d.photoThumb||'' };
     });
     S.history = cloudHist;
     renderHistory();
@@ -1533,7 +1577,7 @@ function loadAllHistory(force){
       const d = doc.data();
       const ts = (d.createdAt && d.createdAt.toDate) ? d.createdAt.toDate().getTime() : Date.now();
       return { id: doc.id, ts, product: d.product||'제품', model: d.model||'', verdict: d.verdict, score: d.score,
-               defects: Array.isArray(d.defects) ? d.defects : null, summary: d.summary||'', photoUrl: d.photoUrl||'' };
+               defects: Array.isArray(d.defects) ? d.defects : null, summary: d.summary||'', photoUrl: d.photoUrl||d.photoThumb||'' };
     });
     HV.loaded = true;
     if(st) st.textContent = '';
@@ -1643,6 +1687,32 @@ function renderHistMini(){
       return `• ${hvFmt(h.ts)} — ${vt}${d ? ' : ' + hvEsc(d) : ''} (일치율 ${h.score ?? '—'}%)`;
     }).join('<br>');
   });
+}
+
+
+/* ── 🔧 저장소 연결 점검: Firestore(목록)·Storage(파일) 쓰기/읽기/삭제를 실제로 시험 ── */
+async function runStorageCheck(){
+  const lines = [];
+  const step = async (label, fn) => {
+    try { await fn(); lines.push('✅ ' + label); return true; }
+    catch (e) { const c = (e && (e.code || e.message)) || 'unknown'; lines.push('❌ ' + label + ' — ' + c); return false; }
+  };
+  const id = 'check_' + Date.now();
+  const fsRef = fbDb.collection('_healthcheck').doc(id);
+  await step('Firestore 쓰기 (목록·기록 저장)', () => fsRef.set({ at: new Date().toISOString() }));
+  await step('Firestore 읽기', async () => { const d = await fsRef.get(); if (!d.exists) throw new Error('not-found'); });
+  await step('Firestore 삭제', () => fsRef.delete());
+  const stRef = fbStorage.ref('_healthcheck/' + id + '.txt');
+  const okPut = await step('Storage 쓰기 (파일·사진 저장)', () => stRef.putString('ok'));
+  if (okPut) {
+    await step('Storage 읽기 주소 만들기', () => stRef.getDownloadURL());
+    await step('Storage 삭제', () => stRef.delete());
+  }
+  const bad = lines.filter(l => l.startsWith('❌'));
+  let hint = '';
+  if (bad.some(l => l.includes('Firestore'))) hint += '\n→ Firestore 규칙(데이터베이스 > 규칙) 날짜·게시 여부를 확인하세요.';
+  if (bad.some(l => l.includes('Storage'))) hint += '\n→ Storage 규칙(Storage > 규칙) 날짜를 2027,12,31로 바꾸고 [게시]했는지, 요금제가 Blaze인지 확인하세요.';
+  alert('저장소 연결 점검 결과\n\n' + lines.join('\n') + (bad.length ? '\n' + hint : '\n\n모두 정상입니다 ✨'));
 }
 
 // ── 판정 이력 개별 삭제 ──
