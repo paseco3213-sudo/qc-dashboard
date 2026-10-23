@@ -1329,41 +1329,37 @@ tr.row-flash td{animation:rowFlash 2.2s ease}
 <!-- ════ 협력사 현황 ════ -->
 <div class="sec" id="sec-sup-dash">
   <div class="row4">
-    <div class="stat"><div class="stat-lbl">등록 협력사</div><div class="stat-val">32개사</div><div class="stat-sub">신규 2개사 (이번달)</div></div>
-    <div class="stat"><div class="stat-lbl">A등급 비율</div><div class="stat-val" style="color:var(--green)">43.7%</div><div class="stat-sub">14개사 / 전월 +2개</div></div>
-    <div class="stat"><div class="stat-lbl">만료 예정 인증</div><div class="stat-val" style="color:var(--amber)">5건</div><div class="stat-sub">30일 이내 만료</div></div>
-    <div class="stat"><div class="stat-lbl">미처리 개선요청</div><div class="stat-val" style="color:var(--red)">8건</div><div class="stat-sub">기한 초과 2건 포함</div></div>
+    <div class="stat"><div class="stat-lbl">등록 협력사</div><div class="stat-val" id="sd-total">—</div><div class="stat-sub" id="sd-total-sub"></div></div>
+    <div class="stat"><div class="stat-lbl">A등급 비율</div><div class="stat-val" style="color:var(--green)" id="sd-a">—</div><div class="stat-sub" id="sd-a-sub"></div></div>
+    <div class="stat"><div class="stat-lbl">인증·계약 만료 관리</div><div class="stat-val" style="color:var(--amber)" id="sd-exp">—</div><div class="stat-sub" id="sd-exp-sub"></div></div>
+    <div class="stat"><div class="stat-lbl">미처리 개선요청</div><div class="stat-val" style="color:var(--red)" id="sd-req">—</div><div class="stat-sub" id="sd-req-sub"></div></div>
   </div>
   <div class="row2">
     <div class="card">
-      <div class="card-head"><div class="card-title">등급별 분포</div></div>
-      <div class="bar-chart">
-        <div class="bar-col"><div class="bar-num" style="color:var(--green)">14</div><div class="bar-track"><div class="bar-fill" style="height:88%;background:var(--green-bg);border:1px solid var(--green)"></div></div><div class="bar-lbl">A등급</div></div>
-        <div class="bar-col"><div class="bar-num" style="color:var(--blue)">11</div><div class="bar-track"><div class="bar-fill" style="height:70%;background:var(--blue-bg);border:1px solid var(--blue)"></div></div><div class="bar-lbl">B등급</div></div>
-        <div class="bar-col"><div class="bar-num" style="color:var(--amber)">5</div><div class="bar-track"><div class="bar-fill" style="height:32%;background:var(--amber-bg);border:1px solid var(--amber)"></div></div><div class="bar-lbl">C등급</div></div>
-        <div class="bar-col"><div class="bar-num" style="color:var(--red)">2</div><div class="bar-track"><div class="bar-fill" style="height:14%;background:var(--red-bg);border:1px solid var(--red)"></div></div><div class="bar-lbl">D등급</div></div>
-      </div>
+      <div class="card-head"><div class="card-title">등급별 분포</div><span style="font-size:11px;color:var(--text3)">협력사 목록 기준</span></div>
+      <div class="bar-chart" id="sd-grade"></div>
     </div>
     <div class="card">
-      <div class="card-head"><div class="card-title">분류별 현황</div></div>
+      <div class="card-head"><div class="card-title">분류별 현황</div><span style="font-size:11px;color:var(--text3)">협력사 목록 기준</span></div>
       <div class="tbl-wrap"><table>
-        <thead><tr><th>분류</th><th>업체수</th><th>A등급</th><th>평균점수</th></tr></thead>
-        <tbody>
-          <tr><td>전자부품</td><td>10개</td><td>6개</td><td>93.4</td></tr>
-          <tr><td>기구·플라스틱</td><td>8개</td><td>3개</td><td>89.1</td></tr>
-          <tr><td>금속·가공</td><td>7개</td><td>3개</td><td>87.6</td></tr>
-          <tr><td>화학·소재</td><td>4개</td><td>1개</td><td>84.2</td></tr>
-          <tr><td>포장·물류</td><td>3개</td><td>1개</td><td>91.0</td></tr>
-        </tbody>
+        <thead><tr><th>분류</th><th>업체수</th><th>A등급</th><th>평균점수</th><th>주의·정지</th></tr></thead>
+        <tbody id="sd-cat"></tbody>
       </table></div>
     </div>
   </div>
-  <div class="card">
-    <div class="card-head"><div class="card-title">이달 주요 일정</div></div>
-    <div class="tl-row"><div class="tl-dot" style="background:var(--red)"></div><div class="tl-body"><div class="tl-title">동아콘트롤 ISO 9001 인증 만료 (D-8)</div><div class="tl-time">2026.04.15 · 갱신 서류 미제출</div></div><span class="badge b-red">긴급</span></div>
-    <div class="tl-row"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-body"><div class="tl-title">경원산업 주식회사 정기평가 예정</div><div class="tl-time">2026.04.15 · 품질 / 납기 / 가격 종합</div></div><span class="badge b-amber">예정</span></div>
-    <div class="tl-row"><div class="tl-dot" style="background:var(--blue)"></div><div class="tl-body"><div class="tl-title">노바텍 신규 납품 품목 심사</div><div class="tl-time">2026.04.18 · NOZ-2220 추가</div></div><span class="badge b-blue">진행</span></div>
-    <div class="tl-row"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-body"><div class="tl-title">광림포장/태성포장 계약 갱신 완료</div><div class="tl-time">2026.04.05 · 2년 연장</div></div><span class="badge b-green">완료</span></div>
+  <div class="row2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">품질 주의 협력사 TOP 5</div><span style="font-size:11px;color:var(--text3)" id="sd-top-sub">최근 3개월 · 수입불량 + 부적합</span></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th style="width:36px">순위</th><th>협력사</th><th>수입불량</th><th>부적합</th><th>미결</th><th>등급</th></tr></thead>
+        <tbody id="sd-top"></tbody>
+      </table></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">행을 누르면 협력사 상세 정보를 볼 수 있습니다.</div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">조치 필요 항목</div><span class="badge b-red" id="sd-act-count">0건</span></div>
+      <div id="sd-actions"></div>
+    </div>
   </div>
 </div>
 
@@ -1761,6 +1757,7 @@ function nav(id, el) {
   currentPage = id;
   if (id === 'defect' && window.QD) QD.onShow();
   if (id === 'caplan' && typeof caRefreshNcOptions === 'function') caRefreshNcOptions();
+  if (id === 'sup-dash' && typeof renderSupDash === 'function') renderSupDash();
 }
 
 
@@ -1894,6 +1891,7 @@ function renderNcSummary(){
   });
   renderTasks();
   renderIqcSummary();
+  renderSupDash();
   decorateWeekBars();
   if (rows.length > 5) list.innerHTML += `<div style="font-size:11px;color:var(--text3);padding-top:8px">외 ${rows.length - 5}건 — <a href="#" onclick="goToItem('nonconf','');return false" style="color:var(--blue)">전체 보기</a></div>`;
 }
@@ -2130,6 +2128,124 @@ function _tickClock(){
   _sumDay = day;
 }
 _tickClock(); setInterval(_tickClock, 30000);
+
+
+/* ════ 협력사 현황: 협력사 목록·인증/계약·개선요청·부적합·수입불량 데이터로 자동 구성 ════ */
+function _ymdParse(t){
+  const m = String(t || '').match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+}
+function renderSupDash(){
+  if (!document.getElementById('sd-total') || typeof vendorStore === 'undefined') return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const q = v => esc(v).replace(/'/g, "\\'");
+  const txt = td => (td ? td.textContent.replace(/[✏️📎🗑️]/gu,'').trim() : '');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = d => Math.round((d - today) / 86400000);
+  const V = vendorStore, N = V.length;
+  const byStatus = k => V.filter(v => v.status === k).length;
+  const byGrade = g => V.filter(v => v.grade === g).length;
+
+  // ── 상단 지표 ──
+  set('sd-total', N + '개사');
+  set('sd-total-sub', `정상 ${byStatus('정상')} · 주의 ${byStatus('주의') + byStatus('주의관리')} · 거래정지 ${byStatus('거래정지')}`);
+  set('sd-a', N ? (Math.round(byGrade('A') / N * 1000) / 10) + '%' : '—');
+  set('sd-a-sub', `A ${byGrade('A')} · B ${byGrade('B')} · C ${byGrade('C')} · D ${byGrade('D')}개사`);
+
+  // 인증 · 계약 만료
+  const exp = [];
+  document.querySelectorAll('#sec-sup-cert .cert-row').forEach(el => {
+    const box = el.querySelector('div[style*="text-align:right"]'); const d = _ymdParse(box?.lastElementChild?.textContent);
+    if (d) exp.push({ kind:'인증', name: el.querySelector('.cert-name')?.textContent.trim() || '', d, key: el.dataset.okey || '' });
+  });
+  const ct = document.querySelector('#sec-sup-cert table tbody');
+  if (ct) [...ct.rows].forEach(tr => { if (tr.cells.length < 3) return; const d = _ymdParse(txt(tr.cells[2])); if (d) exp.push({ kind:'계약', name: txt(tr.cells[0]) + ' · ' + txt(tr.cells[1]), d, key: txt(tr.cells[0]) }); });
+  const expired = exp.filter(e => days(e.d) < 0), soon = exp.filter(e => days(e.d) >= 0 && days(e.d) <= 30);
+  set('sd-exp', (expired.length + soon.length) + '건');
+  set('sd-exp-sub', `만료 ${expired.length} · 30일 이내 ${soon.length} (총 ${exp.length}건 관리)`);
+
+  // 개선요청
+  const reqs = [];
+  const rq = document.querySelector('#sec-sup-req table tbody');
+  if (rq) [...rq.rows].forEach(tr => { if (tr.cells.length < 7) return; reqs.push({ no: txt(tr.cells[0]), vendor: txt(tr.cells[1]), content: txt(tr.cells[3]), due: txt(tr.cells[5]), st: txt(tr.cells[6]) }); });
+  const openReq = reqs.filter(r => r.st !== '완료');
+  const overReq = openReq.filter(r => { const d = _ncParseDate(r.due, today); return r.st === '기한초과' || (d && d < today); });
+  set('sd-req', openReq.length + '건');
+  set('sd-req-sub', `기한 초과 ${overReq.length}건 포함`);
+
+  // ── 등급별 분포 ──
+  const gc = { A:['var(--green)','var(--green-bg)'], B:['var(--blue)','var(--blue-bg)'], C:['var(--amber)','var(--amber-bg)'], D:['var(--red)','var(--red-bg)'] };
+  const gmax = Math.max(1, ...['A','B','C','D'].map(byGrade));
+  const gEl = document.getElementById('sd-grade');
+  if (gEl) gEl.innerHTML = ['A','B','C','D'].map(g => `<div class="bar-col" style="cursor:pointer" onclick="sdFilterVendors('grade','${g}')" title="${g}등급 업체 보기">
+      <div class="bar-num" style="color:${gc[g][0]}">${byGrade(g)}</div>
+      <div class="bar-track"><div class="bar-fill" style="height:${Math.max(4, Math.round(byGrade(g) / gmax * 100))}%;background:${gc[g][1]};border:1px solid ${gc[g][0]}"></div></div>
+      <div class="bar-lbl">${g}등급</div></div>`).join('');
+
+  // ── 분류별 현황 ──
+  const cats = {};
+  V.forEach(v => { const c = v.cat || '미분류'; (cats[c] = cats[c] || []).push(v); });
+  const cEl = document.getElementById('sd-cat');
+  if (cEl) cEl.innerHTML = Object.entries(cats).sort((a, b) => b[1].length - a[1].length).map(([c, list]) => {
+    const avg = list.reduce((s2, v) => s2 + (parseFloat(v.score) || 0), 0) / list.length;
+    const warn = list.filter(v => ['주의','주의관리','거래정지'].includes(v.status)).length;
+    return `<tr style="cursor:pointer" onclick="sdFilterVendors('cat','${q(c)}')" title="${esc(c)} 업체 보기"><td>${esc(c)}</td><td>${list.length}개</td><td>${list.filter(v => v.grade === 'A').length}개</td><td>${avg.toFixed(1)}</td><td>${warn ? `<span class="badge b-red">${warn}</span>` : '—'}</td></tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text3)">협력사 없음</td></tr>';
+
+  // ── 품질 주의 TOP 5 (최근 3개월) ──
+  const m0 = today.getMonth();
+  const recentMonths = new Set([0,1,2].map(k => ((m0 - k + 12) % 12 + 1) + '월'));
+  set('sd-top-sub', `최근 3개월(${[...recentMonths].reverse().join('·')}) · 수입불량 + 부적합`);
+  const norm = n => String(n || '').replace(/\(주\)|㈜|주식회사|\s/g, '');
+  const score = {};
+  const add = (name, k) => { const key = norm(name); if (!key) return; (score[key] = score[key] || { name, def: 0, nc: 0, open: 0 })[k]++; };
+  try { (window.QD && QD.rows ? QD.rows() : []).forEach(r => { if (recentMonths.has(r.month)) add(r.partner, 'def'); }); } catch(e) {}
+  const since = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+  (typeof _ncRows === 'function' ? _ncRows() : []).forEach(r => {
+    if (r.date && r.date >= since) add(r.vendor, 'nc');
+    if (r.status !== '완료') add(r.vendor, 'open');
+  });
+  const top = Object.values(score).sort((a, b) => (b.def + b.nc * 2 + b.open * 2) - (a.def + a.nc * 2 + a.open * 2)).slice(0, 5);
+  const tEl = document.getElementById('sd-top');
+  if (tEl) tEl.innerHTML = top.map((t, i) => {
+    const v = V.find(x => norm(x.name) === norm(t.name));
+    return `<tr style="cursor:pointer" onclick="${v ? `openDetail('${q(v.name)}')` : `goToItem('defect','')`}">
+      <td style="text-align:center;font-weight:700;color:${i < 3 ? 'var(--red)' : 'var(--text2)'}">${i + 1}</td>
+      <td><strong>${esc(v ? v.name : t.name)}</strong>${v ? '' : ' <span style="font-size:10px;color:var(--text3)">(목록 미등록)</span>'}</td>
+      <td>${t.def}건</td><td>${t.nc}건</td><td>${t.open ? `<span class="badge b-red">${t.open}</span>` : '—'}</td>
+      <td>${v ? stBadge(v.grade) : '—'}</td></tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">최근 3개월 불량 이력이 없습니다 ✨</td></tr>';
+
+  // ── 조치 필요 항목 ──
+  const acts = [];
+  expired.forEach(e => acts.push({ pri:0, page:'sup-cert', key:e.key, title:`${e.name} ${e.kind} 만료`, sub:`만료일 ${e.d.getFullYear()}.${e.d.getMonth()+1}.${e.d.getDate()} (${-days(e.d)}일 경과) — 갱신 서류 요청`, badge:['만료','b-red'] }));
+  soon.forEach(e => acts.push({ pri:1, page:'sup-cert', key:e.key, title:`${e.name} ${e.kind} 만료 임박`, sub:`D-${days(e.d)} · ${e.d.getFullYear()}.${e.d.getMonth()+1}.${e.d.getDate()} — 갱신 일정 확인`, badge:['D-' + days(e.d), 'b-amber'] }));
+  overReq.forEach(r => acts.push({ pri:0, page:'sup-req', key:r.no, title:`${r.vendor} 개선요청 기한 초과`, sub:`${r.no} · ${r.content} · 기한 ${r.due} — 독촉 필요`, badge:['기한초과','b-red'] }));
+  V.filter(v => ['주의관리','거래정지'].includes(v.status)).forEach(v => acts.push({ pri:1, page:'sup-list', key:v.name, title:`${v.name} ${v.status} 상태`, sub:`등급 ${v.grade} · 품질점수 ${v.score} — 관리 계획 점검`, badge:[v.status, 'b-red'], vendor:v.name }));
+  V.filter(v => v.grade === 'D' && !['주의관리','거래정지'].includes(v.status)).forEach(v => acts.push({ pri:2, page:'sup-list', key:v.name, title:`${v.name} D등급`, sub:`품질점수 ${v.score} — 개선요청·재평가 검토`, badge:['D등급','b-red'], vendor:v.name }));
+  const caNc = new Set((typeof caStore !== 'undefined' ? caStore : []).map(c => c.nc));
+  (typeof _ncRows === 'function' ? _ncRows() : []).filter(r => r.status !== '완료' && r.seq && !caNc.has(r.seq)).forEach(r => acts.push({ pri:1, page:'nonconf', key:r.seq, title:`${r.vendor} 대책서 미제출`, sub:`${r.seq} · ${r.pnum} ${r.dtype} — 대책서 요청`, badge:['대책서','b-amber'] }));
+  acts.sort((a, b) => a.pri - b.pri);
+  set('sd-act-count', acts.length + '건');
+  const ce = document.getElementById('sd-act-count'); if (ce) ce.className = 'badge ' + (acts.length ? 'b-red' : 'b-green');
+  const aEl = document.getElementById('sd-actions');
+  const dot = { 'b-red':'var(--red)', 'b-amber':'var(--amber)' };
+  if (aEl) aEl.innerHTML = acts.slice(0, 8).map(t => `<div class="tl-row go-row" onclick="${t.vendor ? `openDetail('${q(t.vendor)}')` : `goToItem('${t.page}','${q(t.key)}')`}" title="해당 메뉴에서 보기">
+      <div class="tl-dot" style="background:${dot[t.badge[1]] || 'var(--blue)'}"></div>
+      <div class="tl-body"><div class="tl-title">${esc(t.title)}</div><div class="tl-time">${esc(t.sub)}</div></div>
+      <span class="badge ${t.badge[1]}">${esc(t.badge[0])}</span></div>`).join('')
+    + (acts.length > 8 ? `<div style="font-size:11px;color:var(--text3);padding-top:8px">외 ${acts.length - 8}건</div>` : '')
+    || '<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">조치가 필요한 항목이 없습니다 ✨</div>';
+}
+/* 등급·분류 클릭 → 협력사 목록을 해당 조건으로 필터 */
+function sdFilterVendors(field, val){
+  const navEl = document.querySelector(`.nav-item[onclick*="nav('sup-list'"]`);
+  if (navEl) nav('sup-list', navEl);
+  const sel = document.getElementById(field === 'grade' ? 'vf-grade' : 'vf-cat');
+  if (sel) { if (![...sel.options].some(o => o.value === val)) sel.add(new Option(val, val)); sel.value = val; }
+  if (typeof filterVendors === 'function') filterVendors();
+}
 
 let _sumTimer = null;
 function refreshSummarySoon(){ clearTimeout(_sumTimer); _sumTimer = setTimeout(() => { if (typeof renderNcSummary === 'function') renderNcSummary(); }, 120); }
@@ -5598,7 +5714,7 @@ function onShow() {
   refreshCurrentPage();
 }
 
-window.QD = { gotoPage, changeMonth, doExportCSV, openModal, closeModal, applyUpload, handleFile, runFilter, resetFilters, openTrendModal, closeTrendModal, onShow, renderValid, openValid, closeValid, saveValid, clearValidRange };
+window.QD = { rows: () => getAllRows(), gotoPage, changeMonth, doExportCSV, openModal, closeModal, applyUpload, handleFile, runFilter, resetFilters, openTrendModal, closeTrendModal, onShow, renderValid, openValid, closeValid, saveValid, clearValidRange };
 })();
 </script>
 </body>
